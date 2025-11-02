@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { getDocument } from 'https://esm.sh/pdfjs-serverless@0.3.2';
 import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { renderPageAsImage } from 'https://esm.sh/unpdf@0.11.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -193,17 +194,27 @@ IMPORTANT:
       aiResponse = await response;
       
     } else {
-      // TIER 3: Scanned PDF - use Lovable AI vision for OCR with PDF directly
-      console.log('Scanned PDF detected - using Lovable AI vision for OCR with PDF');
+      // TIER 3: Scanned PDF - convert to PNG image, then use Lovable AI vision for OCR
+      console.log('Scanned PDF detected - converting to PNG for OCR');
       
       try {
-        // Convert PDF bytes to base64 using Deno standard library (safe for large files)
-        const base64Pdf = base64Encode(pdfBytes);
-        const pdfDataUrl = `data:application/pdf;base64,${base64Pdf}`;
+        // Convert first page of PDF to PNG image
+        console.log('Converting PDF page to PNG image...');
+        const pngData = await renderPageAsImage(
+          new Uint8Array(pdfBytes),
+          1, // First page
+          {
+            scale: 2, // Higher resolution for better OCR accuracy
+          }
+        );
         
-        console.log(`PDF converted to base64 (${base64Pdf.length} chars)`);
+        // Convert PNG buffer to base64
+        const base64Png = base64Encode(new Uint8Array(pngData));
+        const imageDataUrl = `data:image/png;base64,${base64Png}`;
         
-        // Call Lovable AI vision API with the PDF directly
+        console.log(`PNG image created (${base64Png.length} chars)`);
+        
+        // Call Lovable AI vision API with the PNG image
         console.log('Calling Lovable AI vision API for OCR extraction...');
         const visionResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
@@ -216,14 +227,14 @@ IMPORTANT:
             messages: [
               {
                 role: 'system',
-                content: 'You are an expert at extracting structured financial data from payslip documents. Extract all key information accurately. Return ONLY valid JSON without markdown formatting.'
+                content: 'You are an expert at extracting structured financial data from payslip images. Extract all key information accurately. Return ONLY valid JSON without markdown formatting.'
               },
               {
                 role: 'user',
                 content: [
                   {
                     type: 'text',
-                    text: `Analyze this payslip PDF and extract the following information. Return as JSON:
+                    text: `Analyze this payslip image and extract the following information. Return as JSON:
 
 {
   "gross_pay": number (total gross pay/salary before deductions),
@@ -252,7 +263,7 @@ CRITICAL RULES:
                   },
                   {
                     type: 'image_url',
-                    image_url: { url: pdfDataUrl }
+                    image_url: { url: imageDataUrl }
                   }
                 ]
               }
