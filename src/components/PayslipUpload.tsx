@@ -1,13 +1,17 @@
 import { useState } from "react";
-import { Upload } from "lucide-react";
+import { Upload, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const PayslipUpload = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleFileSelect = (file: File) => {
+  const handleFileSelect = async (file: File) => {
     if (file.type !== "application/pdf") {
       toast({
         title: "Invalid file type",
@@ -17,11 +21,96 @@ const PayslipUpload = () => {
       return;
     }
 
-    // Placeholder for file upload
-    toast({
-      title: "Upload feature coming soon",
-      description: "File storage and OCR processing will be implemented next",
-    });
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload a file smaller than 10MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to upload payslips",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Create unique file path
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+
+      // Upload file to storage
+      const { error: uploadError } = await supabase.storage
+        .from('payslips')
+        .upload(fileName, file);
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
+
+      // Create payslip record
+      const { data: payslip, error: insertError } = await supabase
+        .from('payslips')
+        .insert({
+          user_id: user.id,
+          file_name: file.name,
+          file_path: fileName,
+          status: 'pending',
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Insert error:', insertError);
+        throw insertError;
+      }
+
+      toast({
+        title: "File uploaded",
+        description: "Processing payslip with OCR...",
+      });
+
+      // Call OCR edge function
+      const { data: ocrResult, error: ocrError } = await supabase.functions.invoke(
+        'process-payslip-ocr',
+        {
+          body: { payslipId: payslip.id },
+        }
+      );
+
+      if (ocrError) {
+        console.error('OCR error:', ocrError);
+        throw ocrError;
+      }
+
+      toast({
+        title: "OCR complete",
+        description: "Please review the extracted data",
+      });
+
+      // Navigate to confirmation page
+      navigate(`/confirm/${ocrResult.data.id}`);
+
+    } catch (error) {
+      console.error('Error uploading payslip:', error);
+      toast({
+        title: "Upload failed",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -65,9 +154,16 @@ const PayslipUpload = () => {
         className="hidden"
         id="file-upload"
       />
-      <Button asChild variant="outline">
+      <Button asChild variant="outline" disabled={isUploading}>
         <label htmlFor="file-upload" className="cursor-pointer">
-          Select PDF File
+          {isUploading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            "Select PDF File"
+          )}
         </label>
       </Button>
       <p className="text-xs text-muted-foreground mt-4">

@@ -1,1 +1,11 @@
 project_id = "osyiefnrrvrouzzsaspi"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+extra_search_path = ["public"]
+max_rows = 1000
+
+[functions.process-payslip-ocr]
+verify_jwt = true
