@@ -34,6 +34,7 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const referralCode = searchParams.get("ref");
 
   useEffect(() => {
     // Check if user is already logged in
@@ -68,6 +69,26 @@ const Auth = () => {
       });
 
       if (error) throw error;
+
+      // If there's a referral code, update the referral record
+      if (referralCode) {
+        const { data: referralData } = await supabase
+          .from("referrals")
+          .select("id, referrer_id")
+          .eq("referral_code", referralCode)
+          .single();
+
+        if (referralData) {
+          await supabase
+            .from("referrals")
+            .update({
+              referred_user_id: (await supabase.auth.getUser()).data.user?.id,
+              status: "completed",
+              completed_at: new Date().toISOString(),
+            })
+            .eq("id", referralData.id);
+        }
+      }
 
       toast({
         title: "Account created!",
