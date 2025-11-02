@@ -58,7 +58,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-5',
         messages: [
           {
             role: 'system',
@@ -99,7 +99,7 @@ Return ONLY the JSON object, no explanation or markdown.`
             ]
           }
         ],
-        max_tokens: 1000,
+        max_completion_tokens: 1000,
       }),
     });
 
