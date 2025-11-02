@@ -287,9 +287,18 @@ const Auth = () => {
                   </div>
                 </>
               )}
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={isLoading || (mode === "signup" && (!acceptTerms || !acceptPrivacy))}
+              >
                 {isLoading ? "Loading..." : mode === "login" ? "Sign In" : "Create Account"}
               </Button>
+              {mode === "signup" && (!acceptTerms || !acceptPrivacy) && (
+                <p className="text-sm text-destructive text-center">
+                  You must accept the Terms of Service and Privacy Policy to continue
+                </p>
+              )}
             </form>
 
             <div className="mt-4 text-center text-sm">
