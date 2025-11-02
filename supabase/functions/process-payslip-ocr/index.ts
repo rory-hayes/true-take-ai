@@ -2,7 +2,6 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { getDocument } from 'https://esm.sh/pdfjs-serverless@0.3.2';
-import { createCanvas } from 'https://esm.sh/canvas@2.11.2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -193,40 +192,17 @@ IMPORTANT:
       aiResponse = await response;
       
     } else {
-      // TIER 3: Scanned PDF - use Lovable AI vision for OCR
-      console.log('Scanned PDF detected - using Lovable AI vision for OCR');
+      // TIER 3: Scanned PDF - use Lovable AI vision for OCR with PDF directly
+      console.log('Scanned PDF detected - using Lovable AI vision for OCR with PDF');
       
       try {
-        // Convert first 2 pages of PDF to images for vision-based OCR
-        const pdf = await getDocument(new Uint8Array(pdfBytes)).promise;
-        const numPagesToProcess = Math.min(2, pdf.numPages);
-        console.log(`Converting ${numPagesToProcess} page(s) to images for OCR...`);
+        // Convert PDF bytes to base64
+        const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBytes)));
+        const pdfDataUrl = `data:application/pdf;base64,${base64Pdf}`;
         
-        const imageUrls: string[] = [];
+        console.log(`PDF converted to base64 (${base64Pdf.length} chars)`);
         
-        for (let pageNum = 1; pageNum <= numPagesToProcess; pageNum++) {
-          const page = await pdf.getPage(pageNum);
-          const viewport = page.getViewport({ scale: 2.0 }); // Higher scale for better OCR quality
-          
-          // Create canvas and render PDF page to it
-          const canvas = createCanvas(viewport.width, viewport.height);
-          const context = canvas.getContext('2d');
-          
-          await page.render({
-            canvasContext: context as any,
-            viewport: viewport,
-          }).promise;
-          
-          // Convert canvas to base64 PNG
-          const buffer = canvas.toBuffer('image/png');
-          const base64 = buffer.toString('base64');
-          const dataUrl = `data:image/png;base64,${base64}`;
-          imageUrls.push(dataUrl);
-          
-          console.log(`Page ${pageNum} converted to image (${buffer.length} bytes)`);
-        }
-        
-        // Call Lovable AI vision API with the images
+        // Call Lovable AI vision API with the PDF directly
         console.log('Calling Lovable AI vision API for OCR extraction...');
         const visionResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
@@ -239,14 +215,14 @@ IMPORTANT:
             messages: [
               {
                 role: 'system',
-                content: 'You are an expert at extracting structured financial data from payslip images. Extract all key information accurately. Return ONLY valid JSON without markdown formatting.'
+                content: 'You are an expert at extracting structured financial data from payslip documents. Extract all key information accurately. Return ONLY valid JSON without markdown formatting.'
               },
               {
                 role: 'user',
                 content: [
                   {
                     type: 'text',
-                    text: `Analyze this payslip image and extract the following information. Return as JSON:
+                    text: `Analyze this payslip PDF and extract the following information. Return as JSON:
 
 {
   "gross_pay": number (total gross pay/salary before deductions),
@@ -273,10 +249,10 @@ CRITICAL RULES:
 - Look for: Gross Pay, Net Pay, Tax/PAYE, Pension, NI/PRSI/Social Security
 - Return ONLY the JSON object, no markdown code blocks or explanations`
                   },
-                  ...imageUrls.map(url => ({
+                  {
                     type: 'image_url',
-                    image_url: { url }
-                  }))
+                    image_url: { url: pdfDataUrl }
+                  }
                 ]
               }
             ],
