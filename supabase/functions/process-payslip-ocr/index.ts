@@ -193,55 +193,221 @@ IMPORTANT:
       aiResponse = await response;
       
     } else {
-      // TIER 3: Scanned PDF - OCR not available, create empty record for manual entry
-      console.log('Scanned PDF detected - redirecting to manual entry');
+      // TIER 3: Scanned PDF - Try vision-based OCR
+      console.log('Scanned PDF detected - attempting vision-based OCR');
       
-      // Create an empty payslip_data record for manual entry
-      const { data: payslipData, error: insertError } = await supabase
-        .from('payslip_data')
-        .insert({
-          payslip_id: payslipId,
-          user_id: payslip.user_id,
-          gross_pay: 0,
-          tax_deducted: 0,
-          net_pay: 0,
-          pension: 0,
-          social_security: 0,
-          other_deductions: 0,
-          additional_data: { 
-            message: 'This appears to be a scanned document. Please enter the values manually.',
-            requires_manual_entry: true
+      try {
+        // Encode PDF as base64 for vision API
+        const base64Pdf = base64Encode(pdfBytes);
+        console.log(`Encoded PDF: ${base64Pdf.length} chars`);
+        
+        // Call Lovable AI vision model with PDF
+        console.log('Calling Lovable AI vision model...');
+        const visionResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
           },
-          confirmed: false,
-        })
-        .select()
-        .single();
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are an expert at extracting structured data from payslip documents. Extract all key financial information accurately. Return ONLY valid JSON without markdown formatting.'
+              },
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: `Extract the following information from this payslip document and return it as JSON:
 
-      if (insertError) {
-        console.error('Error creating manual entry record:', insertError);
-        throw new Error('Failed to create manual entry record');
+Required JSON format:
+{
+  "gross_pay": number (total gross pay/salary before deductions),
+  "tax_deducted": number (total tax/income tax deducted),
+  "net_pay": number (take-home pay after all deductions),
+  "pension": number (pension contributions, 0 if not found),
+  "social_security": number (social security/national insurance, 0 if not found),
+  "other_deductions": number (any other deductions, 0 if not found),
+  "pay_period_start": "YYYY-MM-DD" (start date of pay period, null if not found),
+  "pay_period_end": "YYYY-MM-DD" (end date of pay period, null if not found),
+  "additional_data": {
+    "employee_name": string,
+    "employer_name": string,
+    "payment_date": "YYYY-MM-DD",
+    "employee_id": string,
+    "any_other_relevant_fields": "values"
+  }
+}
+
+IMPORTANT: 
+- All currency amounts must be numbers (no commas or currency symbols)
+- Dates must be in YYYY-MM-DD format
+- Set missing numeric fields to 0, not null
+- Return ONLY the JSON object, no explanation or markdown code blocks`
+                  },
+                  {
+                    type: 'image_url',
+                    image_url: {
+                      url: `data:application/pdf;base64,${base64Pdf}`
+                    }
+                  }
+                ]
+              }
+            ],
+            max_tokens: 2000,
+          }),
+        });
+
+        if (!visionResponse.ok) {
+          const errorText = await visionResponse.text();
+          console.error('Vision API error:', visionResponse.status, errorText);
+          throw new Error(`Vision OCR failed: ${visionResponse.status}`);
+        }
+
+        const visionResult = await visionResponse.json();
+        console.log('Vision OCR response received');
+
+        const visionContent = visionResult.choices[0].message.content;
+        console.log('Vision extracted content:', visionContent);
+
+        // Parse the JSON response
+        let extractedData;
+        try {
+          const jsonMatch = visionContent.match(/\{[\s\S]*\}/);
+          const jsonString = jsonMatch ? jsonMatch[0] : visionContent;
+          extractedData = JSON.parse(jsonString);
+          console.log('Vision parsed data:', JSON.stringify(extractedData, null, 2));
+        } catch (parseError) {
+          console.error('Error parsing vision JSON:', parseError);
+          throw new Error('Vision OCR returned invalid JSON');
+        }
+
+        // Validate the extracted data
+        const validation = validatePayslipData(extractedData);
+        console.log('Vision validation result:', validation);
+
+        if (!validation.isValid) {
+          console.warn('Vision validation warnings:', validation.errors);
+          extractedData.additional_data = {
+            ...extractedData.additional_data,
+            validation_warnings: validation.errors,
+            extraction_method: 'vision_ocr'
+          };
+        } else {
+          extractedData.additional_data = {
+            ...extractedData.additional_data,
+            extraction_method: 'vision_ocr'
+          };
+        }
+
+        // Update payslip with pay period dates if found
+        if (extractedData.pay_period_start || extractedData.pay_period_end) {
+          await supabase
+            .from('payslips')
+            .update({
+              pay_period_start: extractedData.pay_period_start,
+              pay_period_end: extractedData.pay_period_end,
+            })
+            .eq('id', payslipId);
+        }
+
+        // Create payslip_data record with vision-extracted data
+        const { data: payslipData, error: insertError } = await supabase
+          .from('payslip_data')
+          .insert({
+            payslip_id: payslipId,
+            user_id: payslip.user_id,
+            gross_pay: extractedData.gross_pay,
+            tax_deducted: extractedData.tax_deducted,
+            net_pay: extractedData.net_pay,
+            pension: extractedData.pension || 0,
+            social_security: extractedData.social_security || 0,
+            other_deductions: extractedData.other_deductions || 0,
+            additional_data: extractedData.additional_data || {},
+            confirmed: false,
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Error inserting vision OCR data:', insertError);
+          throw new Error('Failed to save vision OCR results');
+        }
+
+        // Update payslip status to processed
+        await supabase
+          .from('payslips')
+          .update({ status: 'processed' })
+          .eq('id', payslipId);
+
+        const processingTime = Date.now() - startTime;
+        console.log(`Vision OCR processing complete in ${processingTime}ms`);
+
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            data: payslipData,
+            payslip_id: payslipId,
+            processing_time_ms: processingTime,
+            extraction_method: 'vision_ocr',
+            validation: validation
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+
+      } catch (visionError) {
+        // Vision OCR failed - fall back to manual entry
+        console.error('Vision OCR failed, falling back to manual entry:', visionError);
+        
+        const { data: payslipData, error: insertError } = await supabase
+          .from('payslip_data')
+          .insert({
+            payslip_id: payslipId,
+            user_id: payslip.user_id,
+            gross_pay: 0,
+            tax_deducted: 0,
+            net_pay: 0,
+            pension: 0,
+            social_security: 0,
+            other_deductions: 0,
+            additional_data: { 
+              message: 'Vision OCR failed. Please enter the values manually.',
+              requires_manual_entry: true,
+              vision_error: visionError instanceof Error ? visionError.message : 'Unknown error'
+            },
+            confirmed: false,
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Error creating manual entry record:', insertError);
+          throw new Error('Failed to create manual entry record');
+        }
+
+        await supabase
+          .from('payslips')
+          .update({ status: 'processed' })
+          .eq('id', payslipId);
+
+        const processingTime = Date.now() - startTime;
+        console.log(`Falling back to manual entry in ${processingTime}ms`);
+
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            data: payslipData,
+            payslip_id: payslipId,
+            processing_time_ms: processingTime,
+            requires_manual_entry: true,
+            message: 'Vision OCR failed. Please enter your payslip values manually.'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
-
-      // Update payslip status
-      await supabase
-        .from('payslips')
-        .update({ status: 'processed' })
-        .eq('id', payslipId);
-
-      const processingTime = Date.now() - startTime;
-      console.log(`Redirecting to manual entry in ${processingTime}ms`);
-
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          data: payslipData,
-          payslip_id: payslipId,
-          processing_time_ms: processingTime,
-          requires_manual_entry: true,
-          message: 'This appears to be a scanned document. Please enter your payslip values manually.'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
     }
 
     if (!aiResponse.ok) {
