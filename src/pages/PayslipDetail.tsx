@@ -45,7 +45,7 @@ export default function PayslipDetail() {
         .from("profiles")
         .select("currency")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
       if (profile?.currency) {
         setCurrency(profile.currency);
@@ -57,7 +57,7 @@ export default function PayslipDetail() {
         .select("*")
         .eq("id", id)
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       if (dataError) throw dataError;
       if (!payslipDataResult) {
@@ -81,7 +81,7 @@ export default function PayslipDetail() {
         .from("payslips")
         .select("*")
         .eq("id", payslipDataResult.payslip_id)
-        .single();
+        .maybeSingle();
 
       if (payslipResult) {
         setPayslip(payslipResult);
