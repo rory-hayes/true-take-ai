@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FileText, Upload, TrendingUp, DollarSign, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import FloatingChatButton from "@/components/FloatingChatButton";
+import { formatCurrency } from "@/lib/currencyUtils";
 import PayslipUpload from "@/components/PayslipUpload";
 import PayslipChart from "@/components/PayslipChart";
 import { UserMenu } from "@/components/UserMenu";
@@ -29,23 +30,6 @@ const Dashboard = () => {
   const [currency, setCurrency] = useState('EUR');
   const [subscriptionTier, setSubscriptionTier] = useState<string>("free");
   const [uploadsRemaining, setUploadsRemaining] = useState<number>(3);
-
-  const getCurrencySymbol = (curr: string) => {
-    const symbols: Record<string, string> = {
-      'EUR': '€',
-      'USD': '$',
-      'GBP': '£',
-      'CHF': 'CHF',
-      'AUD': 'A$',
-      'CAD': 'C$',
-    };
-    return symbols[curr] || curr;
-  };
-
-  const formatCurrency = (amount: number) => {
-    const symbol = getCurrencySymbol(currency);
-    return `${symbol}${amount.toLocaleString()}`;
-  };
 
   useEffect(() => {
     // Check authentication
@@ -216,7 +200,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {stats.latestGrossPay ? formatCurrency(stats.latestGrossPay) : "-"}
+                {stats.latestGrossPay ? formatCurrency(stats.latestGrossPay, currency) : "-"}
               </div>
               <p className="text-xs text-muted-foreground">
                 {stats.latestGrossPay ? "Click for breakdown" : "Upload your first payslip"}
@@ -268,13 +252,14 @@ const Dashboard = () => {
                   {payslipData.slice(0, 3).map((payslip) => (
                     <div
                       key={payslip.id}
-                      className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors"
+                      className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer"
+                      onClick={() => navigate(`/payslip/${payslip.id}`)}
                     >
                       <div className="flex items-center gap-3">
                         <FileText className="h-8 w-8 text-primary" />
                         <div>
                           <p className="font-medium">
-                            {formatCurrency(payslip.gross_pay)} Gross
+                            {formatCurrency(payslip.gross_pay, currency)} Gross
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {new Date(payslip.created_at).toLocaleDateString()}
@@ -283,7 +268,7 @@ const Dashboard = () => {
                       </div>
                       <div className="text-right">
                         <p className="font-semibold text-green-600">
-                          {formatCurrency(payslip.net_pay)}
+                          {formatCurrency(payslip.net_pay, currency)}
                         </p>
                         <p className="text-xs text-muted-foreground">Net Pay</p>
                       </div>
@@ -318,10 +303,14 @@ const Dashboard = () => {
               {payslipData.map((payslip) => (
                 <div
                   key={payslip.id}
-                  className="flex items-center justify-between p-4 rounded-lg border border-border"
+                  className="flex items-center justify-between p-4 rounded-lg border border-border cursor-pointer hover:bg-accent/50 transition-colors"
+                  onClick={() => {
+                    setSelectedDialog(null);
+                    navigate(`/payslip/${payslip.id}`);
+                  }}
                 >
                   <div>
-                    <p className="font-semibold">{formatCurrency(payslip.gross_pay)} Gross</p>
+                    <p className="font-semibold">{formatCurrency(payslip.gross_pay, currency)} Gross</p>
                     <p className="text-sm text-muted-foreground">
                       {new Date(payslip.created_at).toLocaleDateString('en-US', { 
                         month: 'long', 
@@ -331,7 +320,7 @@ const Dashboard = () => {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-green-600">{formatCurrency(payslip.net_pay)}</p>
+                    <p className="font-semibold text-green-600">{formatCurrency(payslip.net_pay, currency)}</p>
                     <p className="text-sm text-muted-foreground">Net Pay</p>
                   </div>
                 </div>
@@ -350,31 +339,31 @@ const Dashboard = () => {
               <div className="space-y-4">
                 <div className="flex justify-between items-center p-3 bg-accent/50 rounded-lg">
                   <span className="font-medium">Gross Pay</span>
-                  <span className="text-xl font-bold">{formatCurrency(payslipData[0].gross_pay)}</span>
+                  <span className="text-xl font-bold">{formatCurrency(payslipData[0].gross_pay, currency)}</span>
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Tax Deducted</span>
-                    <span className="text-red-600">-{formatCurrency(payslipData[0].tax_deducted)}</span>
+                    <span className="text-red-600">-{formatCurrency(payslipData[0].tax_deducted, currency)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Pension</span>
-                    <span className="text-red-600">-{formatCurrency(payslipData[0].pension)}</span>
+                    <span className="text-red-600">-{formatCurrency(payslipData[0].pension, currency)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Social Security</span>
-                    <span className="text-red-600">-{formatCurrency(payslipData[0].social_security)}</span>
+                    <span className="text-red-600">-{formatCurrency(payslipData[0].social_security, currency)}</span>
                   </div>
                   {payslipData[0].other_deductions > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Other Deductions</span>
-                      <span className="text-red-600">-{formatCurrency(payslipData[0].other_deductions)}</span>
+                      <span className="text-red-600">-{formatCurrency(payslipData[0].other_deductions, currency)}</span>
                     </div>
                   )}
                 </div>
                 <div className="flex justify-between items-center p-3 bg-green-500/10 rounded-lg border-2 border-green-500/20">
                   <span className="font-semibold">Net Pay</span>
-                  <span className="text-2xl font-bold text-green-600">{formatCurrency(payslipData[0].net_pay)}</span>
+                  <span className="text-2xl font-bold text-green-600">{formatCurrency(payslipData[0].net_pay, currency)}</span>
                 </div>
               </div>
             )}
@@ -394,11 +383,11 @@ const Dashboard = () => {
                     <p className="text-sm text-muted-foreground mb-2">Latest</p>
                     <div className="space-y-2">
                       <div className="text-center p-3 bg-accent/50 rounded-lg">
-                        <p className="text-2xl font-bold">{formatCurrency(payslipData[0].gross_pay)}</p>
+                        <p className="text-2xl font-bold">{formatCurrency(payslipData[0].gross_pay, currency)}</p>
                         <p className="text-xs text-muted-foreground">Gross Pay</p>
                       </div>
                       <div className="text-center p-2 rounded-lg">
-                        <p className="text-lg font-semibold text-green-600">{formatCurrency(payslipData[0].net_pay)}</p>
+                        <p className="text-lg font-semibold text-green-600">{formatCurrency(payslipData[0].net_pay, currency)}</p>
                         <p className="text-xs text-muted-foreground">Net Pay</p>
                       </div>
                     </div>
@@ -407,11 +396,11 @@ const Dashboard = () => {
                     <p className="text-sm text-muted-foreground mb-2">Previous</p>
                     <div className="space-y-2">
                       <div className="text-center p-3 bg-accent/30 rounded-lg">
-                        <p className="text-2xl font-bold">{formatCurrency(payslipData[1].gross_pay)}</p>
+                        <p className="text-2xl font-bold">{formatCurrency(payslipData[1].gross_pay, currency)}</p>
                         <p className="text-xs text-muted-foreground">Gross Pay</p>
                       </div>
                       <div className="text-center p-2 rounded-lg">
-                        <p className="text-lg font-semibold">{formatCurrency(payslipData[1].net_pay)}</p>
+                        <p className="text-lg font-semibold">{formatCurrency(payslipData[1].net_pay, currency)}</p>
                         <p className="text-xs text-muted-foreground">Net Pay</p>
                       </div>
                     </div>
