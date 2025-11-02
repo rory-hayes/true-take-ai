@@ -14,30 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      invite_rate_limits: {
-        Row: {
-          created_at: string | null
-          id: string
-          invite_count: number
-          invite_date: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          invite_count?: number
-          invite_date?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          invite_count?: number
-          invite_date?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       one_time_purchases: {
         Row: {
           amount: number
@@ -193,6 +169,8 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          invites_sent: number
+          max_invites: number
           payment_day: number | null
           privacy_accepted_at: string | null
           signup_ip_address: string | null
@@ -213,6 +191,8 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          invites_sent?: number
+          max_invites?: number
           payment_day?: number | null
           privacy_accepted_at?: string | null
           signup_ip_address?: string | null
@@ -233,6 +213,8 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          invites_sent?: number
+          max_invites?: number
           payment_day?: number | null
           privacy_accepted_at?: string | null
           signup_ip_address?: string | null

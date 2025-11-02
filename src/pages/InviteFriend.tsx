@@ -21,6 +21,8 @@ export default function InviteFriend() {
   const [userId, setUserId] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [isEmailVerified, setIsEmailVerified] = useState(true);
+  const [invitesSent, setInvitesSent] = useState(0);
+  const [maxInvites, setMaxInvites] = useState(3);
 
   useEffect(() => {
     const loadReferrals = async () => {
@@ -34,6 +36,18 @@ export default function InviteFriend() {
         setUserId(user.id);
         setUserEmail(user.email || "");
         setIsEmailVerified(!!user.email_confirmed_at);
+
+        // Get invite quota
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("invites_sent, max_invites")
+          .eq("id", user.id)
+          .single();
+
+        if (profile) {
+          setInvitesSent(profile.invites_sent || 0);
+          setMaxInvites(profile.max_invites || 3);
+        }
 
         // Get or create referral code
         const { data: existingReferrals } = await supabase
@@ -91,7 +105,7 @@ export default function InviteFriend() {
       });
 
       if (error) {
-        if (error.message?.includes("Daily invite limit reached")) {
+        if (error.message?.includes("Lifetime invite limit reached")) {
           toast.error(error.message);
         } else if (error.message?.includes("Email verification required")) {
           toast.error(error.message);
@@ -103,9 +117,10 @@ export default function InviteFriend() {
       }
 
       toast.success(
-        `Invitation sent successfully! ${data.invites_remaining} invites remaining today.`
+        `Invitation sent successfully! ${data.invites_remaining} invites remaining.`
       );
       setEmail("");
+      setInvitesSent(invitesSent + 1);
 
       // Reload referrals
       const { data: referralHistory } = await supabase
@@ -168,6 +183,9 @@ export default function InviteFriend() {
             <p className="text-muted-foreground mt-2">
               Share the love and get rewarded! Both you and your friend get 1 month free
               when they subscribe.
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              You have <strong>{maxInvites - invitesSent}</strong> of <strong>{maxInvites}</strong> lifetime invites remaining.
             </p>
           </div>
 
@@ -254,12 +272,18 @@ export default function InviteFriend() {
 
                 <Button 
                   type="submit" 
-                  disabled={loading || !isEmailVerified}
+                  disabled={loading || !isEmailVerified || invitesSent >= maxInvites}
                   aria-label="Send invitation email"
-                  title={!isEmailVerified ? "Email verification required" : "Send invitation"}
+                  title={
+                    !isEmailVerified 
+                      ? "Email verification required" 
+                      : invitesSent >= maxInvites 
+                        ? "Invite limit reached" 
+                        : "Send invitation"
+                  }
                 >
                   <Mail className="mr-2 h-4 w-4" />
-                  {loading ? "Sending..." : "Send Invitation"}
+                  {loading ? "Sending..." : invitesSent >= maxInvites ? "Limit Reached" : "Send Invitation"}
                 </Button>
               </form>
             </CardContent>
