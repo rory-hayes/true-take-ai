@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,8 @@ const STRIPE_PRICES = {
 
 export default function Pricing() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const annualCardRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState<string | null>(null);
   const [currentTier, setCurrentTier] = useState<string>("free");
   const [userId, setUserId] = useState<string>("");
@@ -47,6 +49,14 @@ export default function Pricing() {
 
     loadProfile();
   }, [navigate]);
+
+  useEffect(() => {
+    if (location.state?.selectedPlan === "annual" && annualCardRef.current) {
+      setTimeout(() => {
+        annualCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
+    }
+  }, [location.state]);
 
   const handleSubscribe = async (priceId: string, planType: string) => {
     if (!isEmailVerified) {
@@ -192,6 +202,7 @@ export default function Pricing() {
           {plans.map((plan) => (
             <Card
               key={plan.tier}
+              ref={plan.tier === "annual" ? annualCardRef : undefined}
               className={`relative ${plan.popular ? "border-primary shadow-lg" : ""}`}
             >
               {plan.popular && (

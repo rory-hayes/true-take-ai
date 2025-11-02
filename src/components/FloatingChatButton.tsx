@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { ChatKitModal } from "@/components/ChatKitModal";
@@ -12,6 +13,7 @@ const FloatingChatButton = () => {
   const [loading, setLoading] = useState(true);
   const [isEmailVerified, setIsEmailVerified] = useState(true);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
 
   useEffect(() => {
     const loadSubscriptionTier = async () => {
@@ -48,10 +50,15 @@ const FloatingChatButton = () => {
       return;
     }
     if (!isPremium) {
-      navigate("/pricing");
+      setShowUpgradeDialog(true);
     } else {
       setIsChatOpen(true);
     }
+  };
+
+  const handleUpgrade = () => {
+    setShowUpgradeDialog(false);
+    navigate("/pricing", { state: { selectedPlan: "annual" } });
   };
 
   if (loading) return null;
@@ -85,6 +92,25 @@ const FloatingChatButton = () => {
       </TooltipProvider>
 
       <ChatKitModal open={isChatOpen} onOpenChange={setIsChatOpen} />
+
+      <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Upgrade Required</DialogTitle>
+            <DialogDescription>
+              AI ChatKit is not available on the free plan. Upgrade to Annual to unlock this feature and start asking questions about your payslips.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowUpgradeDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpgrade}>
+              Upgrade to Annual
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
