@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { getDocument } from 'https://esm.sh/pdfjs-serverless@0.3.2';
+import { createCanvas } from 'https://esm.sh/canvas@2.11.2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -192,11 +193,104 @@ IMPORTANT:
       aiResponse = await response;
       
     } else {
-      // TIER 3: Scanned PDF, need OCR - this won't work with Gemini, needs image format
-      console.log('Scanned PDF detected - falling back to OpenAI gpt-4o for OCR');
+      // TIER 3: Scanned PDF - use Lovable AI vision for OCR
+      console.log('Scanned PDF detected - using Lovable AI vision for OCR');
       
-      // For now, throw a helpful error - we'd need to implement image conversion
-      throw new Error('Scanned payslips require image conversion. Please use a digital payslip PDF with text layer, or contact support for OCR support.');
+      try {
+        // Convert first 2 pages of PDF to images for vision-based OCR
+        const pdf = await getDocument(new Uint8Array(pdfBytes)).promise;
+        const numPagesToProcess = Math.min(2, pdf.numPages);
+        console.log(`Converting ${numPagesToProcess} page(s) to images for OCR...`);
+        
+        const imageUrls: string[] = [];
+        
+        for (let pageNum = 1; pageNum <= numPagesToProcess; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          const viewport = page.getViewport({ scale: 2.0 }); // Higher scale for better OCR quality
+          
+          // Create canvas and render PDF page to it
+          const canvas = createCanvas(viewport.width, viewport.height);
+          const context = canvas.getContext('2d');
+          
+          await page.render({
+            canvasContext: context as any,
+            viewport: viewport,
+          }).promise;
+          
+          // Convert canvas to base64 PNG
+          const buffer = canvas.toBuffer('image/png');
+          const base64 = buffer.toString('base64');
+          const dataUrl = `data:image/png;base64,${base64}`;
+          imageUrls.push(dataUrl);
+          
+          console.log(`Page ${pageNum} converted to image (${buffer.length} bytes)`);
+        }
+        
+        // Call Lovable AI vision API with the images
+        console.log('Calling Lovable AI vision API for OCR extraction...');
+        const visionResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are an expert at extracting structured financial data from payslip images. Extract all key information accurately. Return ONLY valid JSON without markdown formatting.'
+              },
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: `Analyze this payslip image and extract the following information. Return as JSON:
+
+{
+  "gross_pay": number (total gross pay/salary before deductions),
+  "tax_deducted": number (total tax/income tax deducted),
+  "net_pay": number (take-home pay after all deductions),
+  "pension": number (pension contributions, 0 if not found),
+  "social_security": number (social security/national insurance/NI/PRSI, 0 if not found),
+  "other_deductions": number (any other deductions, 0 if not found),
+  "pay_period_start": "YYYY-MM-DD" (start date of pay period, null if not found),
+  "pay_period_end": "YYYY-MM-DD" (end date of pay period, null if not found),
+  "additional_data": {
+    "employee_name": string,
+    "employer_name": string,
+    "payment_date": "YYYY-MM-DD",
+    "employee_id": string,
+    "any_other_relevant_fields": "values"
+  }
+}
+
+CRITICAL RULES:
+- Extract ALL numbers without commas or currency symbols (e.g., "1,234.56" → 1234.56)
+- ALL dates MUST be in YYYY-MM-DD format
+- Set missing numeric fields to 0, not null
+- Look for: Gross Pay, Net Pay, Tax/PAYE, Pension, NI/PRSI/Social Security
+- Return ONLY the JSON object, no markdown code blocks or explanations`
+                  },
+                  ...imageUrls.map(url => ({
+                    type: 'image_url',
+                    image_url: { url }
+                  }))
+                ]
+              }
+            ],
+            max_tokens: 1500,
+          }),
+        });
+        
+        aiResponse = visionResponse;
+        console.log('Vision OCR response received');
+        
+      } catch (ocrError) {
+        console.error('Vision OCR failed:', ocrError);
+        throw new Error(`Failed to process scanned payslip: ${ocrError instanceof Error ? ocrError.message : 'Unknown error'}`);
+      }
     }
 
     if (!aiResponse.ok) {
