@@ -9,12 +9,15 @@ const FloatingChatButton = () => {
   const navigate = useNavigate();
   const [subscriptionTier, setSubscriptionTier] = useState<string>("free");
   const [loading, setLoading] = useState(true);
+  const [isEmailVerified, setIsEmailVerified] = useState(true);
 
   useEffect(() => {
     const loadSubscriptionTier = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
+
+        setIsEmailVerified(!!user.email_confirmed_at);
 
         const { data: profile } = await supabase
           .from("profiles")
@@ -36,8 +39,13 @@ const FloatingChatButton = () => {
   }, []);
 
   const isPremium = subscriptionTier === "monthly" || subscriptionTier === "annual";
+  const isRestricted = !isPremium || !isEmailVerified;
 
   const handleClick = () => {
+    if (!isEmailVerified) {
+      // Do nothing - tooltip will explain
+      return;
+    }
     if (!isPremium) {
       navigate("/pricing");
     } else {
@@ -57,12 +65,16 @@ const FloatingChatButton = () => {
             className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all"
             onClick={handleClick}
             variant={isPremium ? "default" : "outline"}
+            disabled={!isEmailVerified}
+            aria-label="AI ChatKit"
           >
             <MessageCircle className="h-6 w-6" />
           </Button>
         </TooltipTrigger>
         <TooltipContent side="left" className="max-w-xs">
-          {isPremium ? (
+          {!isEmailVerified ? (
+            <p>Please verify your email to unlock AI ChatKit</p>
+          ) : isPremium ? (
             <p>AI ChatKit - Coming Soon</p>
           ) : (
             <p>AI ChatKit is available on paid plans. Click to upgrade!</p>

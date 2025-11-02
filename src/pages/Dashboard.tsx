@@ -161,7 +161,11 @@ const Dashboard = () => {
             <AlertDescription>
               <span className="font-semibold">{uploadsRemaining} uploads remaining</span> on your free plan.
               {uploadsRemaining <= 1 && (
-                <> <a href="/pricing" className="underline hover:text-primary">Upgrade now</a> for unlimited uploads and premium features.</>
+                <> {isEmailVerified ? (
+                  <a href="/pricing" className="underline hover:text-primary">Upgrade now</a>
+                ) : (
+                  <span className="text-muted-foreground cursor-not-allowed" title="Email verification required">Upgrade now</span>
+                )} for unlimited uploads and premium features.</>
               )}
             </AlertDescription>
           </Alert>
