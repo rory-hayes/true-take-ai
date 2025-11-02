@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ArrowLeft, Copy, Mail, Gift } from "lucide-react";
+import { EmailVerificationBanner } from "@/components/EmailVerificationBanner";
 
 export default function InviteFriend() {
   const navigate = useNavigate();
@@ -16,6 +17,8 @@ export default function InviteFriend() {
   const [referralCode, setReferralCode] = useState("");
   const [referrals, setReferrals] = useState<any[]>([]);
   const [userId, setUserId] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [isEmailVerified, setIsEmailVerified] = useState(true);
 
   useEffect(() => {
     const loadReferrals = async () => {
@@ -26,6 +29,8 @@ export default function InviteFriend() {
       }
 
       setUserId(user.id);
+      setUserEmail(user.email || "");
+      setIsEmailVerified(!!user.email_confirmed_at);
 
       // Get or create referral code
       const { data: existingReferrals } = await supabase
@@ -61,6 +66,12 @@ export default function InviteFriend() {
 
   const handleSendInvite = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!isEmailVerified) {
+      toast.error("Please verify your email before inviting friends");
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -130,6 +141,8 @@ export default function InviteFriend() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Dashboard
         </Button>
+
+        {!isEmailVerified && <EmailVerificationBanner userEmail={userEmail} />}
 
         <div className="space-y-6">
           <div>

@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Check, ArrowLeft, Sparkles } from "lucide-react";
+import { EmailVerificationBanner } from "@/components/EmailVerificationBanner";
 
 const STRIPE_PRICES = {
   monthly: "price_1SP31vFI6AfZKCoZgbwMQ8tX",
@@ -18,6 +19,8 @@ export default function Pricing() {
   const [loading, setLoading] = useState<string | null>(null);
   const [currentTier, setCurrentTier] = useState<string>("free");
   const [userId, setUserId] = useState<string>("");
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [isEmailVerified, setIsEmailVerified] = useState(true);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -28,6 +31,8 @@ export default function Pricing() {
       }
 
       setUserId(user.id);
+      setUserEmail(user.email || "");
+      setIsEmailVerified(!!user.email_confirmed_at);
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -44,6 +49,11 @@ export default function Pricing() {
   }, [navigate]);
 
   const handleSubscribe = async (priceId: string, planType: string) => {
+    if (!isEmailVerified) {
+      toast.error("Please verify your email before subscribing");
+      return;
+    }
+    
     setLoading(planType);
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
@@ -63,6 +73,11 @@ export default function Pricing() {
   };
 
   const handlePurchaseTaxPackage = async () => {
+    if (!isEmailVerified) {
+      toast.error("Please verify your email before making purchases");
+      return;
+    }
+    
     setLoading("tax_package");
     try {
       const { data, error } = await supabase.functions.invoke("create-payment", {
@@ -163,6 +178,8 @@ export default function Pricing() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Dashboard
         </Button>
+
+        {!isEmailVerified && <EmailVerificationBanner userEmail={userEmail} />}
 
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Choose Your Plan</h1>

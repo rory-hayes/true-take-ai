@@ -170,11 +170,13 @@ export type Database = {
           full_name: string | null
           id: string
           payment_day: number | null
+          privacy_accepted_at: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_end_date: string | null
           subscription_status: string | null
           subscription_tier: string
+          terms_accepted_at: string | null
           updated_at: string
           uploads_remaining: number
         }
@@ -187,11 +189,13 @@ export type Database = {
           full_name?: string | null
           id: string
           payment_day?: number | null
+          privacy_accepted_at?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_end_date?: string | null
           subscription_status?: string | null
           subscription_tier?: string
+          terms_accepted_at?: string | null
           updated_at?: string
           uploads_remaining?: number
         }
@@ -204,11 +208,13 @@ export type Database = {
           full_name?: string | null
           id?: string
           payment_day?: number | null
+          privacy_accepted_at?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_end_date?: string | null
           subscription_status?: string | null
           subscription_tier?: string
+          terms_accepted_at?: string | null
           updated_at?: string
           uploads_remaining?: number
         }

@@ -10,11 +10,13 @@ import FloatingChatButton from "@/components/FloatingChatButton";
 import PayslipUpload from "@/components/PayslipUpload";
 import PayslipChart from "@/components/PayslipChart";
 import { UserMenu } from "@/components/UserMenu";
+import { EmailVerificationBanner } from "@/components/EmailVerificationBanner";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
+  const [isEmailVerified, setIsEmailVerified] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [payslipData, setPayslipData] = useState<any[]>([]);
   const [stats, setStats] = useState({
@@ -49,6 +51,7 @@ const Dashboard = () => {
         navigate("/auth?mode=login");
       } else {
         setUser(session.user);
+        setIsEmailVerified(!!session.user.email_confirmed_at);
         fetchPayslipData(session.user.id);
       }
     });
@@ -58,6 +61,7 @@ const Dashboard = () => {
         navigate("/auth?mode=login");
       } else {
         setUser(session.user);
+        setIsEmailVerified(!!session.user.email_confirmed_at);
         fetchPayslipData(session.user.id);
       }
     });
@@ -156,6 +160,8 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
+        {!isEmailVerified && <EmailVerificationBanner userEmail={user?.email || ""} />}
+        
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Your Dashboard</h1>
           <p className="text-muted-foreground">Track and analyze your payslip data</p>
