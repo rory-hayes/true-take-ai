@@ -118,35 +118,46 @@ export default function Settings() {
   const handleDeleteAccount = async () => {
     setLoading(true);
     try {
-      // First delete all user data
-      await handleDeleteAllData();
+      // Delete payslip data
+      await supabase.from("payslip_data").delete().eq("user_id", userId);
+      
+      // Delete payslips
+      await supabase.from("payslips").delete().eq("user_id", userId);
+      
+      // Delete files from storage
+      const { data: files } = await supabase.storage
+        .from("payslips")
+        .list(userId);
+
+      if (files && files.length > 0) {
+        const filePaths = files.map((file) => `${userId}/${file.name}`);
+        await supabase.storage.from("payslips").remove(filePaths);
+      }
 
       // Delete referrals
       await supabase.from("referrals").delete().eq("referrer_id", userId);
 
-      // Delete subscriptions
+      // Delete subscriptions (if any)
       await supabase.from("subscriptions").delete().eq("user_id", userId);
 
-      // Delete one_time_purchases
+      // Delete one_time_purchases (if any)
       await supabase.from("one_time_purchases").delete().eq("user_id", userId);
 
       // Delete profile
       await supabase.from("profiles").delete().eq("id", userId);
 
-      // Finally delete auth user (this will cascade to remaining data)
-      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+      // Sign out the user
+      await supabase.auth.signOut();
       
-      if (authError) {
-        // If admin delete fails (requires service role), sign out user
-        await supabase.auth.signOut();
-        toast.success("Account deletion initiated. Please contact support to complete the process.");
-      } else {
-        toast.success("Account deleted successfully");
-      }
-
-      navigate("/");
+      toast.success("Account deleted successfully. You will be redirected to the home page.");
+      
+      // Redirect to landing page
+      setTimeout(() => {
+        navigate("/");
+      }, 2000);
     } catch (error: any) {
-      toast.error(error.message || "Error deleting account");
+      console.error("Account deletion error:", error);
+      toast.error(error.message || "Error deleting account. Please contact support.");
       setLoading(false);
     }
   };
@@ -255,15 +266,15 @@ export default function Settings() {
                   <AlertDialogTrigger asChild>
                     <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground" disabled={loading}>
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Delete All Data
+                      Delete Payslip Data
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Delete all your data?</AlertDialogTitle>
+                      <AlertDialogTitle>Delete all payslip data?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This will permanently delete all your payslip data and reset your account. 
-                        Your subscription and account will remain active.
+                        This will permanently delete all your payslips and reset your upload count. 
+                        Your account and subscription will remain active.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -272,11 +283,14 @@ export default function Settings() {
                         onClick={handleDeleteAllData}
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
-                        Delete All Data
+                        Delete Payslip Data
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Removes all your payslip files and data but keeps your account active.
+                </p>
               </div>
 
               <div>
@@ -284,16 +298,23 @@ export default function Settings() {
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive" disabled={loading}>
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Delete Account Permanently
+                      Delete Account
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete your account,
-                        all your data, subscriptions, and remove all your information from our servers.
-                        You will need to create a new account to use the service again.
+                      <AlertDialogTitle>Delete your account permanently?</AlertDialogTitle>
+                      <AlertDialogDescription className="space-y-2">
+                        <p className="font-semibold text-destructive">
+                          This action cannot be undone.
+                        </p>
+                        <p>
+                          This will permanently delete your account, all your payslip data, 
+                          subscriptions, and remove all your information from our servers.
+                        </p>
+                        <p>
+                          You will need to create a new account to use the service again.
+                        </p>
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -302,13 +323,13 @@ export default function Settings() {
                         onClick={handleDeleteAccount}
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
-                        Delete Account Forever
+                        Yes, Delete My Account
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
                 <p className="text-sm text-muted-foreground mt-2">
-                  This will delete your account and all associated data permanently.
+                  Permanently deletes your account and all associated data. This cannot be reversed.
                 </p>
               </div>
             </CardContent>
