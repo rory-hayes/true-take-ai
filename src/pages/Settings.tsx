@@ -35,7 +35,7 @@ export default function Settings() {
         .from("profiles")
         .select("currency, country, data_retention_months")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
       if (profile) {
         setCurrency(profile.currency || "EUR");
@@ -50,6 +50,8 @@ export default function Settings() {
   const handleSaveSettings = async () => {
     setLoading(true);
     try {
+      const previousCurrency = currency;
+      
       const { error } = await supabase
         .from("profiles")
         .update({
@@ -62,6 +64,11 @@ export default function Settings() {
       if (error) throw error;
 
       toast.success("Settings saved successfully");
+      
+      // Show specific currency update message if currency changed
+      if (previousCurrency !== currency) {
+        toast.success(`Currency updated to ${currency}`);
+      }
     } catch (error: any) {
       toast.error(error.message || "Error saving settings");
     } finally {

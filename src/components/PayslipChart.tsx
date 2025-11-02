@@ -1,5 +1,6 @@
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
+import { formatCurrency } from "@/lib/currencyUtils";
 
 interface PayslipData {
   gross_pay: number;
@@ -9,9 +10,10 @@ interface PayslipData {
 
 interface PayslipChartProps {
   data: PayslipData[];
+  currency?: string;
 }
 
-const PayslipChart = ({ data }: PayslipChartProps) => {
+const PayslipChart = ({ data, currency = "EUR" }: PayslipChartProps) => {
   // Transform data for the chart
   const chartData = data
     .map((payslip) => {
@@ -69,7 +71,7 @@ const PayslipChart = ({ data }: PayslipChartProps) => {
           <YAxis 
             className="text-xs"
             tick={{ fill: 'hsl(var(--muted-foreground))' }}
-            tickFormatter={(value) => `$${value.toLocaleString()}`}
+            tickFormatter={(value) => formatCurrency(value, currency).replace(/\.\d{2}/, '')}
           />
           <Tooltip
             contentStyle={{
@@ -77,7 +79,7 @@ const PayslipChart = ({ data }: PayslipChartProps) => {
               border: '1px solid hsl(var(--border))',
               borderRadius: '8px',
             }}
-            formatter={(value: number) => `$${value.toLocaleString()}`}
+            formatter={(value: number) => formatCurrency(value, currency)}
           />
           <Area
             type="monotone"

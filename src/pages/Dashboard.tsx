@@ -291,7 +291,7 @@ const Dashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <PayslipChart data={payslipData} />
+              <PayslipChart data={payslipData} currency={currency} />
             </CardContent>
           </Card>
         </div>
