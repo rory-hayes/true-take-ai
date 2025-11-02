@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Upload, LogOut, TrendingUp, DollarSign } from "lucide-react";
+import { FileText, Upload, TrendingUp, DollarSign } from "lucide-react";
 import FloatingChatButton from "@/components/FloatingChatButton";
 import PayslipUpload from "@/components/PayslipUpload";
 import PayslipChart from "@/components/PayslipChart";
@@ -21,6 +22,7 @@ const Dashboard = () => {
     latestGrossPay: null as number | null,
     trend: null as string | null,
   });
+  const [selectedDialog, setSelectedDialog] = useState<'uploads' | 'latest' | 'trend' | null>(null);
 
   useEffect(() => {
     // Check authentication
@@ -130,9 +132,12 @@ const Dashboard = () => {
           <p className="text-muted-foreground">Track and analyze your payslip data</p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <Card>
+        {/* Stats Cards - Now 4 cards including Upload */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card 
+            className="cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => setSelectedDialog('uploads')}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Uploads</CardTitle>
               <Upload className="h-4 w-4 text-muted-foreground" />
@@ -140,12 +145,15 @@ const Dashboard = () => {
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalUploads}</div>
               <p className="text-xs text-muted-foreground">
-                {stats.totalUploads === 0 ? "No payslips uploaded yet" : "Confirmed payslips"}
+                {stats.totalUploads === 0 ? "No payslips uploaded yet" : "Click to view all"}
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card 
+            className="cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => stats.latestGrossPay && setSelectedDialog('latest')}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Latest Gross Pay</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -155,12 +163,15 @@ const Dashboard = () => {
                 {stats.latestGrossPay ? `$${stats.latestGrossPay.toLocaleString()}` : "-"}
               </div>
               <p className="text-xs text-muted-foreground">
-                {stats.latestGrossPay ? "From your latest payslip" : "Upload your first payslip"}
+                {stats.latestGrossPay ? "Click for breakdown" : "Upload your first payslip"}
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card 
+            className="cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => stats.trend && setSelectedDialog('trend')}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Trend</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -168,26 +179,23 @@ const Dashboard = () => {
             <CardContent>
               <div className="text-2xl font-bold">{stats.trend || "-"}</div>
               <p className="text-xs text-muted-foreground">
-                {stats.trend ? "vs previous payslip" : "Need more data"}
+                {stats.trend ? "Click for comparison" : "Need more data"}
               </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium">Quick Upload</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <PayslipUpload compact />
             </CardContent>
           </Card>
         </div>
 
-        {/* Upload Section */}
+        {/* Content Grid */}
         <div className="grid lg:grid-cols-2 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Upload Payslip</CardTitle>
-              <CardDescription>
-                Upload your payslip PDF for automatic data extraction
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <PayslipUpload />
-            </CardContent>
-          </Card>
-
           <Card>
             <CardHeader>
               <CardTitle>Recent Payslips</CardTitle>
@@ -229,20 +237,138 @@ const Dashboard = () => {
               )}
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Income Trends</CardTitle>
+              <CardDescription>
+                View your income trends based on uploaded payslips
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <PayslipChart data={payslipData} />
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Chart Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Income Trends</CardTitle>
-            <CardDescription>
-              View your income trends over the past 12 months
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <PayslipChart />
-          </CardContent>
-        </Card>
+        {/* Dialogs for drill-down */}
+        <Dialog open={selectedDialog === 'uploads'} onOpenChange={() => setSelectedDialog(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>All Payslips</DialogTitle>
+              <DialogDescription>Complete history of your uploaded payslips</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 max-h-[400px] overflow-y-auto">
+              {payslipData.map((payslip) => (
+                <div
+                  key={payslip.id}
+                  className="flex items-center justify-between p-4 rounded-lg border border-border"
+                >
+                  <div>
+                    <p className="font-semibold">${payslip.gross_pay.toLocaleString()} Gross</p>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(payslip.created_at).toLocaleDateString('en-US', { 
+                        month: 'long', 
+                        day: 'numeric', 
+                        year: 'numeric' 
+                      })}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-green-600">${payslip.net_pay.toLocaleString()}</p>
+                    <p className="text-sm text-muted-foreground">Net Pay</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={selectedDialog === 'latest'} onOpenChange={() => setSelectedDialog(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Latest Payslip Breakdown</DialogTitle>
+              <DialogDescription>Detailed view of your most recent payslip</DialogDescription>
+            </DialogHeader>
+            {payslipData[0] && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-3 bg-accent/50 rounded-lg">
+                  <span className="font-medium">Gross Pay</span>
+                  <span className="text-xl font-bold">${payslipData[0].gross_pay.toLocaleString()}</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Tax Deducted</span>
+                    <span className="text-red-600">-${payslipData[0].tax_deducted.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Pension</span>
+                    <span className="text-red-600">-${payslipData[0].pension.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Social Security</span>
+                    <span className="text-red-600">-${payslipData[0].social_security.toLocaleString()}</span>
+                  </div>
+                  {payslipData[0].other_deductions > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Other Deductions</span>
+                      <span className="text-red-600">-${payslipData[0].other_deductions.toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-between items-center p-3 bg-green-500/10 rounded-lg border-2 border-green-500/20">
+                  <span className="font-semibold">Net Pay</span>
+                  <span className="text-2xl font-bold text-green-600">${payslipData[0].net_pay.toLocaleString()}</span>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={selectedDialog === 'trend'} onOpenChange={() => setSelectedDialog(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Payslip Comparison</DialogTitle>
+              <DialogDescription>Compare your last two payslips</DialogDescription>
+            </DialogHeader>
+            {payslipData.length >= 2 && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Latest</p>
+                    <div className="space-y-2">
+                      <div className="text-center p-3 bg-accent/50 rounded-lg">
+                        <p className="text-2xl font-bold">${payslipData[0].gross_pay.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">Gross Pay</p>
+                      </div>
+                      <div className="text-center p-2 rounded-lg">
+                        <p className="text-lg font-semibold text-green-600">${payslipData[0].net_pay.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">Net Pay</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Previous</p>
+                    <div className="space-y-2">
+                      <div className="text-center p-3 bg-accent/30 rounded-lg">
+                        <p className="text-2xl font-bold">${payslipData[1].gross_pay.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">Gross Pay</p>
+                      </div>
+                      <div className="text-center p-2 rounded-lg">
+                        <p className="text-lg font-semibold">${payslipData[1].net_pay.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">Net Pay</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-center p-4 bg-primary/10 rounded-lg">
+                  <p className="text-3xl font-bold text-primary">{stats.trend}</p>
+                  <p className="text-sm text-muted-foreground mt-1">Change in gross pay</p>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
 
       {/* Floating Chat Button */}

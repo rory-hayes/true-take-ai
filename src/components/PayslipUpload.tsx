@@ -5,7 +5,11 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
-const PayslipUpload = () => {
+interface PayslipUploadProps {
+  compact?: boolean;
+}
+
+const PayslipUpload = ({ compact = false }: PayslipUploadProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isDragging, setIsDragging] = useState(false);
@@ -141,7 +145,9 @@ const PayslipUpload = () => {
 
   return (
     <div
-      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+      className={`border-2 border-dashed rounded-lg text-center transition-colors ${
+        compact ? 'p-4' : 'p-8'
+      } ${
         isDragging
           ? "border-primary bg-primary/5"
           : "border-border hover:border-primary/50"
@@ -153,30 +159,37 @@ const PayslipUpload = () => {
       onDragLeave={() => setIsDragging(false)}
       onDrop={handleDrop}
     >
-      <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-      <p className="text-lg font-medium mb-2">Drop your payslip here</p>
-      <p className="text-sm text-muted-foreground mb-4">or click to browse</p>
+      {!compact && (
+        <>
+          <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <p className="text-lg font-medium mb-2">Drop your payslip here</p>
+          <p className="text-sm text-muted-foreground mb-4">or click to browse</p>
+        </>
+      )}
       <input
         type="file"
         accept="application/pdf,image/png,image/jpeg,image/jpg"
         onChange={handleFileInput}
         className="hidden"
-        id="file-upload"
+        id={compact ? "file-upload-compact" : "file-upload"}
       />
-      <Button asChild variant="outline" disabled={isUploading}>
-        <label htmlFor="file-upload" className="cursor-pointer">
+      <Button asChild variant="outline" disabled={isUploading} className="w-full">
+        <label htmlFor={compact ? "file-upload-compact" : "file-upload"} className="cursor-pointer">
           {isUploading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Processing...
             </>
           ) : (
-            "Select File"
+            <>
+              <Upload className="mr-2 h-4 w-4" />
+              {compact ? "Upload" : "Select File"}
+            </>
           )}
         </label>
       </Button>
-      <p className="text-xs text-muted-foreground mt-4">
-        Supports PDF, PNG, JPEG • Max 10MB
+      <p className="text-xs text-muted-foreground mt-2">
+        {compact ? "PDF, PNG, JPEG" : "Supports PDF, PNG, JPEG • Max 10MB"}
       </p>
     </div>
   );
