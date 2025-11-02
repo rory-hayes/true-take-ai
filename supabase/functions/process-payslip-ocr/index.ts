@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { getDocument } from 'https://esm.sh/pdfjs-serverless@0.3.2';
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -196,8 +197,8 @@ IMPORTANT:
       console.log('Scanned PDF detected - using Lovable AI vision for OCR with PDF');
       
       try {
-        // Convert PDF bytes to base64
-        const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBytes)));
+        // Convert PDF bytes to base64 using Deno standard library (safe for large files)
+        const base64Pdf = base64Encode(pdfBytes);
         const pdfDataUrl = `data:application/pdf;base64,${base64Pdf}`;
         
         console.log(`PDF converted to base64 (${base64Pdf.length} chars)`);
