@@ -227,7 +227,9 @@ const PayslipUpload = ({ compact = false }: PayslipUploadProps) => {
       }`}
       onDragOver={(e) => {
         e.preventDefault();
-        setIsDragging(true);
+        if (!(subscriptionTier === "free" && uploadsRemaining <= 0)) {
+          setIsDragging(true);
+        }
       }}
       onDragLeave={() => setIsDragging(false)}
       onDrop={handleDrop}
@@ -239,6 +241,17 @@ const PayslipUpload = ({ compact = false }: PayslipUploadProps) => {
           <p className="text-sm text-muted-foreground mb-4">or click to browse</p>
         </>
       )}
+      
+      {subscriptionTier === "free" && (
+        <div className="mb-3 text-sm">
+          <span className={uploadsRemaining <= 1 ? "font-semibold text-orange-600" : "text-muted-foreground"}>
+            {uploadsRemaining > 0 
+              ? `${uploadsRemaining} upload${uploadsRemaining !== 1 ? 's' : ''} remaining on your free plan`
+              : "Upload limit reached"}
+          </span>
+        </div>
+      )}
+      
       <input
         type="file"
         accept="application/pdf,image/png,image/jpeg,image/jpg"
@@ -246,25 +259,44 @@ const PayslipUpload = ({ compact = false }: PayslipUploadProps) => {
         className="hidden"
         id={compact ? "file-upload-compact" : "file-upload"}
         aria-label="Upload payslip file"
+        disabled={subscriptionTier === "free" && uploadsRemaining <= 0}
       />
-      <Button asChild variant="outline" disabled={isUploading} className="w-full">
-        <label 
-          htmlFor={compact ? "file-upload-compact" : "file-upload"} 
-          className="cursor-pointer"
-          aria-label="Upload payslip"
-        >
-          {isUploading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Processing...
-            </>
-          ) : (
-            <>
-              <Upload className="mr-2 h-4 w-4" />
-              {compact ? "Upload" : "Select File"}
-            </>
-          )}
-        </label>
+      <Button 
+        asChild={!(subscriptionTier === "free" && uploadsRemaining <= 0)}
+        variant="outline" 
+        disabled={isUploading || (subscriptionTier === "free" && uploadsRemaining <= 0)} 
+        className="w-full"
+        onClick={(e) => {
+          if (subscriptionTier === "free" && uploadsRemaining <= 0) {
+            e.preventDefault();
+            setShowUpgradeDialog(true);
+          }
+        }}
+      >
+        {subscriptionTier === "free" && uploadsRemaining <= 0 ? (
+          <div className="cursor-not-allowed">
+            <Upload className="mr-2 h-4 w-4 inline" />
+            Upgrade to Upload
+          </div>
+        ) : (
+          <label 
+            htmlFor={compact ? "file-upload-compact" : "file-upload"} 
+            className="cursor-pointer"
+            aria-label="Upload payslip"
+          >
+            {isUploading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Upload className="mr-2 h-4 w-4" />
+                {compact ? "Upload" : "Select File"}
+              </>
+            )}
+          </label>
+        )}
       </Button>
       <p className="text-xs text-muted-foreground mt-2">
         {compact ? "PDF, PNG, JPEG" : "Supports PDF, PNG, JPEG • Max 10MB"}
@@ -275,13 +307,13 @@ const PayslipUpload = ({ compact = false }: PayslipUploadProps) => {
           <AlertDialogHeader>
             <AlertDialogTitle>Upload Limit Reached</AlertDialogTitle>
             <AlertDialogDescription>
-              You've reached your free plan limit of 3 uploads. Upgrade to a paid plan for unlimited uploads and premium features like AI ChatKit.
+              You've used all {3} uploads on your free plan. Upgrade to a paid plan for unlimited uploads and premium features like AI ChatKit.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => navigate("/pricing")}>
-              View Plans
+              View Plans & Upgrade
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
