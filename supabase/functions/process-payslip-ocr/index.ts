@@ -3,7 +3,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { getDocument } from 'https://esm.sh/pdfjs-serverless@0.3.2';
 import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
-import { renderPageAsImage } from 'https://esm.sh/unpdf@0.11.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -194,91 +193,55 @@ IMPORTANT:
       aiResponse = await response;
       
     } else {
-      // TIER 3: Scanned PDF - convert to PNG image, then use Lovable AI vision for OCR
-      console.log('Scanned PDF detected - converting to PNG for OCR');
+      // TIER 3: Scanned PDF - OCR not available, create empty record for manual entry
+      console.log('Scanned PDF detected - redirecting to manual entry');
       
-      try {
-        // Convert first page of PDF to PNG image
-        console.log('Converting PDF page to PNG image...');
-        const pngData = await renderPageAsImage(
-          new Uint8Array(pdfBytes),
-          1, // First page
-          {
-            scale: 2, // Higher resolution for better OCR accuracy
-          }
-        );
-        
-        // Convert PNG buffer to base64
-        const base64Png = base64Encode(new Uint8Array(pngData));
-        const imageDataUrl = `data:image/png;base64,${base64Png}`;
-        
-        console.log(`PNG image created (${base64Png.length} chars)`);
-        
-        // Call Lovable AI vision API with the PNG image
-        console.log('Calling Lovable AI vision API for OCR extraction...');
-        const visionResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${lovableApiKey}`,
-            'Content-Type': 'application/json',
+      // Create an empty payslip_data record for manual entry
+      const { data: payslipData, error: insertError } = await supabase
+        .from('payslip_data')
+        .insert({
+          payslip_id: payslipId,
+          user_id: payslip.user_id,
+          gross_pay: 0,
+          tax_deducted: 0,
+          net_pay: 0,
+          pension: 0,
+          social_security: 0,
+          other_deductions: 0,
+          additional_data: { 
+            message: 'This appears to be a scanned document. Please enter the values manually.',
+            requires_manual_entry: true
           },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [
-              {
-                role: 'system',
-                content: 'You are an expert at extracting structured financial data from payslip images. Extract all key information accurately. Return ONLY valid JSON without markdown formatting.'
-              },
-              {
-                role: 'user',
-                content: [
-                  {
-                    type: 'text',
-                    text: `Analyze this payslip image and extract the following information. Return as JSON:
+          confirmed: false,
+        })
+        .select()
+        .single();
 
-{
-  "gross_pay": number (total gross pay/salary before deductions),
-  "tax_deducted": number (total tax/income tax deducted),
-  "net_pay": number (take-home pay after all deductions),
-  "pension": number (pension contributions, 0 if not found),
-  "social_security": number (social security/national insurance/NI/PRSI, 0 if not found),
-  "other_deductions": number (any other deductions, 0 if not found),
-  "pay_period_start": "YYYY-MM-DD" (start date of pay period, null if not found),
-  "pay_period_end": "YYYY-MM-DD" (end date of pay period, null if not found),
-  "additional_data": {
-    "employee_name": string,
-    "employer_name": string,
-    "payment_date": "YYYY-MM-DD",
-    "employee_id": string,
-    "any_other_relevant_fields": "values"
-  }
-}
-
-CRITICAL RULES:
-- Extract ALL numbers without commas or currency symbols (e.g., "1,234.56" → 1234.56)
-- ALL dates MUST be in YYYY-MM-DD format
-- Set missing numeric fields to 0, not null
-- Look for: Gross Pay, Net Pay, Tax/PAYE, Pension, NI/PRSI/Social Security
-- Return ONLY the JSON object, no markdown code blocks or explanations`
-                  },
-                  {
-                    type: 'image_url',
-                    image_url: { url: imageDataUrl }
-                  }
-                ]
-              }
-            ],
-            max_tokens: 1500,
-          }),
-        });
-        
-        aiResponse = visionResponse;
-        console.log('Vision OCR response received');
-        
-      } catch (ocrError) {
-        console.error('Vision OCR failed:', ocrError);
-        throw new Error(`Failed to process scanned payslip: ${ocrError instanceof Error ? ocrError.message : 'Unknown error'}`);
+      if (insertError) {
+        console.error('Error creating manual entry record:', insertError);
+        throw new Error('Failed to create manual entry record');
       }
+
+      // Update payslip status
+      await supabase
+        .from('payslips')
+        .update({ status: 'processed' })
+        .eq('id', payslipId);
+
+      const processingTime = Date.now() - startTime;
+      console.log(`Redirecting to manual entry in ${processingTime}ms`);
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          data: payslipData,
+          payslip_id: payslipId,
+          processing_time_ms: processingTime,
+          requires_manual_entry: true,
+          message: 'This appears to be a scanned document. Please enter your payslip values manually.'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     if (!aiResponse.ok) {

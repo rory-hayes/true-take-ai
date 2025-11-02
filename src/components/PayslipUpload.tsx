@@ -93,10 +93,18 @@ const PayslipUpload = () => {
         throw ocrError;
       }
 
-      toast({
-        title: "OCR complete",
-        description: "Please review the extracted data",
-      });
+      // Check if manual entry is required (scanned document)
+      if (ocrResult.requires_manual_entry) {
+        toast({
+          title: "Manual entry required",
+          description: "This appears to be a scanned document. Please enter your payslip values manually.",
+        });
+      } else {
+        toast({
+          title: "OCR complete",
+          description: "Please review the extracted data",
+        });
+      }
 
       // Navigate to confirmation page
       navigate(`/confirm/${ocrResult.data.id}`);
