@@ -50,7 +50,7 @@ serve(async (req) => {
 
     console.log('Calling OpenAI for PDF OCR with URL:', urlData.signedUrl);
 
-    // Call OpenAI with PDF URL
+    // Call OpenAI with PDF URL using GPT-5
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -58,7 +58,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-5',
+        model: 'gpt-5-2025-08-07',
         messages: [
           {
             role: 'system',
@@ -106,6 +106,14 @@ Return ONLY the JSON object, no explanation or markdown.`
     if (!response.ok) {
       const errorText = await response.text();
       console.error('OpenAI API error:', response.status, errorText);
+      
+      if (response.status === 429) {
+        throw new Error('OpenAI rate limit exceeded. Please check your API key credits or wait before retrying.');
+      }
+      if (response.status === 401) {
+        throw new Error('Invalid OpenAI API key. Please check your OPENAI_API_KEY secret.');
+      }
+      
       throw new Error(`OpenAI API error: ${response.status}`);
     }
 
