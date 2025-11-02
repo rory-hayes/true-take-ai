@@ -15,6 +15,12 @@ const Dashboard = () => {
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [payslipData, setPayslipData] = useState<any[]>([]);
+  const [stats, setStats] = useState({
+    totalUploads: 0,
+    latestGrossPay: null as number | null,
+    trend: null as string | null,
+  });
 
   useEffect(() => {
     // Check authentication
@@ -23,7 +29,7 @@ const Dashboard = () => {
         navigate("/auth?mode=login");
       } else {
         setUser(session.user);
-        setIsLoading(false);
+        fetchPayslipData(session.user.id);
       }
     });
 
@@ -32,11 +38,55 @@ const Dashboard = () => {
         navigate("/auth?mode=login");
       } else {
         setUser(session.user);
+        fetchPayslipData(session.user.id);
       }
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const fetchPayslipData = async (userId: string) => {
+    try {
+      // Fetch confirmed payslip data
+      const { data, error } = await supabase
+        .from('payslip_data')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('confirmed', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setPayslipData(data || []);
+
+      // Calculate stats
+      if (data && data.length > 0) {
+        const latest = data[0];
+        const totalUploads = data.length;
+        const latestGrossPay = latest.gross_pay;
+
+        // Calculate trend (compare last two payslips)
+        let trend = null;
+        if (data.length >= 2) {
+          const current = data[0].gross_pay;
+          const previous = data[1].gross_pay;
+          const change = ((current - previous) / previous) * 100;
+          trend = change > 0 ? `+${change.toFixed(1)}%` : `${change.toFixed(1)}%`;
+        }
+
+        setStats({ totalUploads, latestGrossPay, trend });
+      }
+    } catch (error) {
+      console.error('Error fetching payslip data:', error);
+      toast({
+        title: "Error loading data",
+        description: "Failed to load your payslip data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -88,8 +138,10 @@ const Dashboard = () => {
               <Upload className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">No payslips uploaded yet</p>
+              <div className="text-2xl font-bold">{stats.totalUploads}</div>
+              <p className="text-xs text-muted-foreground">
+                {stats.totalUploads === 0 ? "No payslips uploaded yet" : "Confirmed payslips"}
+              </p>
             </CardContent>
           </Card>
 
@@ -99,8 +151,12 @@ const Dashboard = () => {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">-</div>
-              <p className="text-xs text-muted-foreground">Upload your first payslip</p>
+              <div className="text-2xl font-bold">
+                {stats.latestGrossPay ? `$${stats.latestGrossPay.toLocaleString()}` : "-"}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {stats.latestGrossPay ? "From your latest payslip" : "Upload your first payslip"}
+              </p>
             </CardContent>
           </Card>
 
@@ -110,8 +166,10 @@ const Dashboard = () => {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">-</div>
-              <p className="text-xs text-muted-foreground">Need more data</p>
+              <div className="text-2xl font-bold">{stats.trend || "-"}</div>
+              <p className="text-xs text-muted-foreground">
+                {stats.trend ? "vs previous payslip" : "Need more data"}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -136,10 +194,39 @@ const Dashboard = () => {
               <CardDescription>Your recently uploaded payslip documents</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No payslips uploaded yet</p>
-              </div>
+              {payslipData.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No payslips uploaded yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {payslipData.slice(0, 3).map((payslip) => (
+                    <div
+                      key={payslip.id}
+                      className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <FileText className="h-8 w-8 text-primary" />
+                        <div>
+                          <p className="font-medium">
+                            ${payslip.gross_pay.toLocaleString()} Gross
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(payslip.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-green-600">
+                          ${payslip.net_pay.toLocaleString()}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Net Pay</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

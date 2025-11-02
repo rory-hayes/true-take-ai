@@ -12,10 +12,11 @@ const PayslipUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
 
   const handleFileSelect = async (file: File) => {
-    if (file.type !== "application/pdf") {
+    const allowedTypes = ["application/pdf", "image/png", "image/jpeg", "image/jpg"];
+    if (!allowedTypes.includes(file.type)) {
       toast({
         title: "Invalid file type",
-        description: "Please upload a PDF file",
+        description: "Please upload a PDF, PNG, or JPEG file",
         variant: "destructive",
       });
       return;
@@ -157,7 +158,7 @@ const PayslipUpload = () => {
       <p className="text-sm text-muted-foreground mb-4">or click to browse</p>
       <input
         type="file"
-        accept="application/pdf"
+        accept="application/pdf,image/png,image/jpeg,image/jpg"
         onChange={handleFileInput}
         className="hidden"
         id="file-upload"
@@ -170,12 +171,12 @@ const PayslipUpload = () => {
               Processing...
             </>
           ) : (
-            "Select PDF File"
+            "Select File"
           )}
         </label>
       </Button>
       <p className="text-xs text-muted-foreground mt-4">
-        Supports PDF format only • Max 10MB
+        Supports PDF, PNG, JPEG • Max 10MB
       </p>
     </div>
   );
