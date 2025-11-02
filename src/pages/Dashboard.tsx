@@ -118,7 +118,7 @@ const Dashboard = () => {
           <div className="flex items-center gap-2">
             <FileText className="h-8 w-8 text-primary" />
             <span className="text-2xl font-bold bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--accent))] bg-clip-text text-transparent">
-              True Take
+              Tax Man
             </span>
           </div>
           <UserMenu userEmail={user?.email || ""} />
@@ -133,7 +133,7 @@ const Dashboard = () => {
         </div>
 
         {/* Stats Cards - Now 4 cards including Upload */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-4 gap-6 mb-8">
           <Card 
             className="cursor-pointer hover:shadow-lg transition-shadow"
             onClick={() => setSelectedDialog('uploads')}

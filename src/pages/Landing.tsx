@@ -13,7 +13,7 @@ const Landing = () => {
           <div className="flex items-center gap-2">
             <FileText className="h-8 w-8 text-primary" />
             <span className="text-2xl font-bold bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--accent))] bg-clip-text text-transparent">
-              True Take
+              Tax Man
             </span>
           </div>
           <div className="flex gap-3">
@@ -109,7 +109,7 @@ const Landing = () => {
       <footer className="border-t border-border mt-20">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center text-muted-foreground">
-            <p>&copy; 2025 True Take. All rights reserved.</p>
+            <p>&copy; 2025 Tax Man. All rights reserved.</p>
           </div>
         </div>
       </footer>

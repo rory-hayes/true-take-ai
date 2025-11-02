@@ -156,7 +156,7 @@ const Auth = () => {
         <div className="flex items-center justify-center gap-2 mb-8">
           <FileText className="h-8 w-8 text-primary" />
           <span className="text-2xl font-bold bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--accent))] bg-clip-text text-transparent">
-            True Take
+            Tax Man
           </span>
         </div>
 
