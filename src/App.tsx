@@ -7,6 +7,10 @@ import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import ConfirmPayslip from "./pages/ConfirmPayslip";
+import UserProfile from "./pages/UserProfile";
+import Pricing from "./pages/Pricing";
+import Settings from "./pages/Settings";
+import InviteFriend from "./pages/InviteFriend";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +26,10 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/confirm/:id" element={<ConfirmPayslip />} />
+          <Route path="/profile" element={<UserProfile />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/invite" element={<InviteFriend />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -8,6 +8,7 @@ import { FileText, Upload, LogOut, TrendingUp, DollarSign } from "lucide-react";
 import FloatingChatButton from "@/components/FloatingChatButton";
 import PayslipUpload from "@/components/PayslipUpload";
 import PayslipChart from "@/components/PayslipChart";
+import { UserMenu } from "@/components/UserMenu";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -68,15 +69,7 @@ const Dashboard = () => {
               True Take
             </span>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground hidden sm:inline">
-              {user?.email}
-            </span>
-            <Button variant="outline" size="sm" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
-          </div>
+          <UserMenu userEmail={user?.email || ""} />
         </div>
       </header>
 
