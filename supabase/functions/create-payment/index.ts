@@ -33,6 +33,11 @@ serve(async (req) => {
       throw new Error("User not authenticated or email not available");
     }
 
+    // Check email verification
+    if (!user.email_confirmed_at) {
+      throw new Error("Email verification required. Please verify your email before making purchases.");
+    }
+
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });

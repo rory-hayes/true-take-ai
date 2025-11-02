@@ -73,7 +73,19 @@ serve(async (req) => {
 
     const body = await req.json();
     payslipId = body.payslipId;
+    const userId = body.userId;
     console.log('Processing payslip:', payslipId);
+
+    // Validate upload quota (server-side check)
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('subscription_tier, uploads_remaining')
+      .eq('id', userId)
+      .single();
+
+    if (profile && profile.subscription_tier === 'free' && profile.uploads_remaining <= 0) {
+      throw new Error('Upload quota exceeded. Please upgrade your plan to continue uploading payslips.');
+    }
 
     // Get payslip record to fetch file path
     const { data: payslip, error: payslipError } = await supabase

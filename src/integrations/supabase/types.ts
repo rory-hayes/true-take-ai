@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      invite_rate_limits: {
+        Row: {
+          created_at: string | null
+          id: string
+          invite_count: number
+          invite_date: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          invite_count?: number
+          invite_date?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          invite_count?: number
+          invite_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       one_time_purchases: {
         Row: {
           amount: number
@@ -171,6 +195,7 @@ export type Database = {
           id: string
           payment_day: number | null
           privacy_accepted_at: string | null
+          signup_ip_address: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_end_date: string | null
@@ -190,6 +215,7 @@ export type Database = {
           id: string
           payment_day?: number | null
           privacy_accepted_at?: string | null
+          signup_ip_address?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_end_date?: string | null
@@ -209,6 +235,7 @@ export type Database = {
           id?: string
           payment_day?: number | null
           privacy_accepted_at?: string | null
+          signup_ip_address?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_end_date?: string | null

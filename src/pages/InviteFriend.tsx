@@ -83,18 +83,28 @@ export default function InviteFriend() {
     setLoading(true);
 
     try {
-      // Create referral record
-      const { error } = await supabase
-        .from("referrals")
-        .insert({
-          referrer_id: userId,
-          referred_email: email,
-          referral_code: referralCode,
-        });
+      const { data, error } = await supabase.functions.invoke("send-invite", {
+        body: {
+          referredEmail: email,
+          referralCode: referralCode,
+        },
+      });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message?.includes("Daily invite limit reached")) {
+          toast.error(error.message);
+        } else if (error.message?.includes("Email verification required")) {
+          toast.error(error.message);
+        } else {
+          throw error;
+        }
+        setLoading(false);
+        return;
+      }
 
-      toast.success(`Invitation sent to ${email}`);
+      toast.success(
+        `Invitation sent successfully! ${data.invites_remaining} invites remaining today.`
+      );
       setEmail("");
 
       // Reload referrals
@@ -189,7 +199,11 @@ export default function InviteFriend() {
                     <Label>Referral Code</Label>
                     <div className="flex gap-2 mt-1">
                       <Input value={referralCode} readOnly className="font-mono" />
-                      <Button onClick={copyReferralCode} variant="outline">
+                      <Button 
+                        onClick={copyReferralCode} 
+                        variant="outline"
+                        aria-label="Copy referral code"
+                      >
                         <Copy className="h-4 w-4" />
                       </Button>
                     </div>
@@ -203,7 +217,11 @@ export default function InviteFriend() {
                         readOnly
                         className="text-sm"
                       />
-                      <Button onClick={copyReferralLink} variant="outline">
+                      <Button 
+                        onClick={copyReferralLink} 
+                        variant="outline"
+                        aria-label="Copy referral link"
+                      >
                         <Copy className="h-4 w-4" />
                       </Button>
                     </div>
@@ -234,7 +252,12 @@ export default function InviteFriend() {
                   />
                 </div>
 
-                <Button type="submit" disabled={loading}>
+                <Button 
+                  type="submit" 
+                  disabled={loading || !isEmailVerified}
+                  aria-label="Send invitation email"
+                  title={!isEmailVerified ? "Email verification required" : "Send invitation"}
+                >
                   <Mail className="mr-2 h-4 w-4" />
                   {loading ? "Sending..." : "Send Invitation"}
                 </Button>

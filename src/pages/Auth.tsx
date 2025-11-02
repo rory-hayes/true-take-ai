@@ -86,14 +86,26 @@ const Auth = () => {
 
       if (error) throw error;
 
-      // Store legal agreement timestamps
+      // Store legal agreement timestamps and IP address
       if (authData.user) {
         const now = new Date().toISOString();
+        
+        // Get user's IP address (best effort)
+        let ipAddress = "unknown";
+        try {
+          const ipResponse = await fetch("https://api.ipify.org?format=json");
+          const ipData = await ipResponse.json();
+          ipAddress = ipData.ip;
+        } catch (error) {
+          console.error("Failed to fetch IP address:", error);
+        }
+
         await supabase
           .from("profiles")
           .update({
             terms_accepted_at: now,
             privacy_accepted_at: now,
+            signup_ip_address: ipAddress,
           })
           .eq("id", authData.user.id);
       }
@@ -122,6 +134,9 @@ const Auth = () => {
         title: "Account created!",
         description: "Please check your email to verify your account.",
       });
+
+      // Redirect to verification page
+      navigate("/verify-email");
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         toast({

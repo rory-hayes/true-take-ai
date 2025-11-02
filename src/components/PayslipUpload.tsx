@@ -132,12 +132,30 @@ const PayslipUpload = ({ compact = false }: PayslipUploadProps) => {
       const { data: ocrResult, error: ocrError } = await supabase.functions.invoke(
         'process-payslip-ocr',
         {
-          body: { payslipId: payslip.id },
+          body: { payslipId: payslip.id, userId: user.id },
         }
       );
 
       if (ocrError) {
         console.error('OCR error:', ocrError);
+        
+        let errorMessage = "Failed to process payslip. Please try again or enter data manually.";
+        
+        if (ocrError.message?.includes("Upload quota exceeded")) {
+          errorMessage = "Upload quota exceeded. Please upgrade to continue uploading payslips.";
+        } else if (ocrError.message?.includes("Vision OCR failed")) {
+          errorMessage = "Unable to extract text from this document. This may be a scanned or image-based PDF. Please verify the extracted data or enter it manually.";
+        } else if (ocrError.message?.includes("Rate limit")) {
+          errorMessage = "AI processing rate limit reached. Please try again in a few moments.";
+        } else if (ocrError.message?.includes("credits depleted")) {
+          errorMessage = "AI processing credits depleted. Please contact support or try again later.";
+        }
+        
+        toast({
+          title: "Processing Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
         throw ocrError;
       }
 
@@ -227,9 +245,14 @@ const PayslipUpload = ({ compact = false }: PayslipUploadProps) => {
         onChange={handleFileInput}
         className="hidden"
         id={compact ? "file-upload-compact" : "file-upload"}
+        aria-label="Upload payslip file"
       />
       <Button asChild variant="outline" disabled={isUploading} className="w-full">
-        <label htmlFor={compact ? "file-upload-compact" : "file-upload"} className="cursor-pointer">
+        <label 
+          htmlFor={compact ? "file-upload-compact" : "file-upload"} 
+          className="cursor-pointer"
+          aria-label="Upload payslip"
+        >
           {isUploading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
