@@ -23,6 +23,24 @@ const Dashboard = () => {
     trend: null as string | null,
   });
   const [selectedDialog, setSelectedDialog] = useState<'uploads' | 'latest' | 'trend' | null>(null);
+  const [currency, setCurrency] = useState('EUR');
+
+  const getCurrencySymbol = (curr: string) => {
+    const symbols: Record<string, string> = {
+      'EUR': '€',
+      'USD': '$',
+      'GBP': '£',
+      'CHF': 'CHF',
+      'AUD': 'A$',
+      'CAD': 'C$',
+    };
+    return symbols[curr] || curr;
+  };
+
+  const formatCurrency = (amount: number) => {
+    const symbol = getCurrencySymbol(currency);
+    return `${symbol}${amount.toLocaleString()}`;
+  };
 
   useEffect(() => {
     // Check authentication
@@ -49,6 +67,17 @@ const Dashboard = () => {
 
   const fetchPayslipData = async (userId: string) => {
     try {
+      // Fetch user profile for currency
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('currency')
+        .eq('id', userId)
+        .single();
+
+      if (profile?.currency) {
+        setCurrency(profile.currency);
+      }
+
       // Fetch confirmed payslip data
       const { data, error } = await supabase
         .from('payslip_data')
@@ -160,7 +189,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {stats.latestGrossPay ? `$${stats.latestGrossPay.toLocaleString()}` : "-"}
+                {stats.latestGrossPay ? formatCurrency(stats.latestGrossPay) : "-"}
               </div>
               <p className="text-xs text-muted-foreground">
                 {stats.latestGrossPay ? "Click for breakdown" : "Upload your first payslip"}
@@ -218,7 +247,7 @@ const Dashboard = () => {
                         <FileText className="h-8 w-8 text-primary" />
                         <div>
                           <p className="font-medium">
-                            ${payslip.gross_pay.toLocaleString()} Gross
+                            {formatCurrency(payslip.gross_pay)} Gross
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {new Date(payslip.created_at).toLocaleDateString()}
@@ -227,7 +256,7 @@ const Dashboard = () => {
                       </div>
                       <div className="text-right">
                         <p className="font-semibold text-green-600">
-                          ${payslip.net_pay.toLocaleString()}
+                          {formatCurrency(payslip.net_pay)}
                         </p>
                         <p className="text-xs text-muted-foreground">Net Pay</p>
                       </div>
@@ -265,7 +294,7 @@ const Dashboard = () => {
                   className="flex items-center justify-between p-4 rounded-lg border border-border"
                 >
                   <div>
-                    <p className="font-semibold">${payslip.gross_pay.toLocaleString()} Gross</p>
+                    <p className="font-semibold">{formatCurrency(payslip.gross_pay)} Gross</p>
                     <p className="text-sm text-muted-foreground">
                       {new Date(payslip.created_at).toLocaleDateString('en-US', { 
                         month: 'long', 
@@ -275,7 +304,7 @@ const Dashboard = () => {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-green-600">${payslip.net_pay.toLocaleString()}</p>
+                    <p className="font-semibold text-green-600">{formatCurrency(payslip.net_pay)}</p>
                     <p className="text-sm text-muted-foreground">Net Pay</p>
                   </div>
                 </div>
@@ -294,31 +323,31 @@ const Dashboard = () => {
               <div className="space-y-4">
                 <div className="flex justify-between items-center p-3 bg-accent/50 rounded-lg">
                   <span className="font-medium">Gross Pay</span>
-                  <span className="text-xl font-bold">${payslipData[0].gross_pay.toLocaleString()}</span>
+                  <span className="text-xl font-bold">{formatCurrency(payslipData[0].gross_pay)}</span>
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Tax Deducted</span>
-                    <span className="text-red-600">-${payslipData[0].tax_deducted.toLocaleString()}</span>
+                    <span className="text-red-600">-{formatCurrency(payslipData[0].tax_deducted)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Pension</span>
-                    <span className="text-red-600">-${payslipData[0].pension.toLocaleString()}</span>
+                    <span className="text-red-600">-{formatCurrency(payslipData[0].pension)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Social Security</span>
-                    <span className="text-red-600">-${payslipData[0].social_security.toLocaleString()}</span>
+                    <span className="text-red-600">-{formatCurrency(payslipData[0].social_security)}</span>
                   </div>
                   {payslipData[0].other_deductions > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Other Deductions</span>
-                      <span className="text-red-600">-${payslipData[0].other_deductions.toLocaleString()}</span>
+                      <span className="text-red-600">-{formatCurrency(payslipData[0].other_deductions)}</span>
                     </div>
                   )}
                 </div>
                 <div className="flex justify-between items-center p-3 bg-green-500/10 rounded-lg border-2 border-green-500/20">
                   <span className="font-semibold">Net Pay</span>
-                  <span className="text-2xl font-bold text-green-600">${payslipData[0].net_pay.toLocaleString()}</span>
+                  <span className="text-2xl font-bold text-green-600">{formatCurrency(payslipData[0].net_pay)}</span>
                 </div>
               </div>
             )}
@@ -338,11 +367,11 @@ const Dashboard = () => {
                     <p className="text-sm text-muted-foreground mb-2">Latest</p>
                     <div className="space-y-2">
                       <div className="text-center p-3 bg-accent/50 rounded-lg">
-                        <p className="text-2xl font-bold">${payslipData[0].gross_pay.toLocaleString()}</p>
+                        <p className="text-2xl font-bold">{formatCurrency(payslipData[0].gross_pay)}</p>
                         <p className="text-xs text-muted-foreground">Gross Pay</p>
                       </div>
                       <div className="text-center p-2 rounded-lg">
-                        <p className="text-lg font-semibold text-green-600">${payslipData[0].net_pay.toLocaleString()}</p>
+                        <p className="text-lg font-semibold text-green-600">{formatCurrency(payslipData[0].net_pay)}</p>
                         <p className="text-xs text-muted-foreground">Net Pay</p>
                       </div>
                     </div>
@@ -351,11 +380,11 @@ const Dashboard = () => {
                     <p className="text-sm text-muted-foreground mb-2">Previous</p>
                     <div className="space-y-2">
                       <div className="text-center p-3 bg-accent/30 rounded-lg">
-                        <p className="text-2xl font-bold">${payslipData[1].gross_pay.toLocaleString()}</p>
+                        <p className="text-2xl font-bold">{formatCurrency(payslipData[1].gross_pay)}</p>
                         <p className="text-xs text-muted-foreground">Gross Pay</p>
                       </div>
                       <div className="text-center p-2 rounded-lg">
-                        <p className="text-lg font-semibold">${payslipData[1].net_pay.toLocaleString()}</p>
+                        <p className="text-lg font-semibold">{formatCurrency(payslipData[1].net_pay)}</p>
                         <p className="text-xs text-muted-foreground">Net Pay</p>
                       </div>
                     </div>
