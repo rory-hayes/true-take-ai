@@ -37,24 +37,20 @@ serve(async (req) => {
       throw new Error('Failed to fetch payslip');
     }
 
-    // Download the file from storage
-    const { data: fileData, error: downloadError } = await supabase
+    // Get the signed URL for the file
+    const { data: urlData, error: urlError } = await supabase
       .storage
       .from('payslips')
-      .download(payslip.file_path);
+      .createSignedUrl(payslip.file_path, 3600);
 
-    if (downloadError) {
-      console.error('Error downloading file:', downloadError);
-      throw new Error('Failed to download payslip file');
+    if (urlError || !urlData?.signedUrl) {
+      console.error('Error creating signed URL:', urlError);
+      throw new Error('Failed to get file URL');
     }
 
-    // Convert file to base64
-    const arrayBuffer = await fileData.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    console.log('Calling OpenAI for PDF OCR with URL:', urlData.signedUrl);
 
-    console.log('Calling OpenAI Vision API for OCR...');
-
-    // Call OpenAI Vision API
+    // Call OpenAI with PDF URL
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -73,7 +69,7 @@ serve(async (req) => {
             content: [
               {
                 type: 'text',
-                text: `Extract the following information from this payslip image and return it as JSON:
+                text: `Extract the following information from this payslip PDF and return it as JSON:
 {
   "gross_pay": number (total gross pay/salary before deductions),
   "tax_deducted": number (total tax/income tax deducted),
@@ -97,7 +93,7 @@ Return ONLY the JSON object, no explanation or markdown.`
               {
                 type: 'image_url',
                 image_url: {
-                  url: `data:application/pdf;base64,${base64}`
+                  url: urlData.signedUrl
                 }
               }
             ]
