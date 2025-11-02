@@ -1,9 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Upload, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface PayslipUploadProps {
   compact?: boolean;
@@ -14,8 +24,41 @@ const PayslipUpload = ({ compact = false }: PayslipUploadProps) => {
   const navigate = useNavigate();
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [subscriptionTier, setSubscriptionTier] = useState<string>("free");
+  const [uploadsRemaining, setUploadsRemaining] = useState<number>(3);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+
+  useEffect(() => {
+    const loadUserQuota = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("subscription_tier, uploads_remaining")
+          .eq("id", user.id)
+          .single();
+
+        if (profile) {
+          setSubscriptionTier(profile.subscription_tier);
+          setUploadsRemaining(profile.uploads_remaining);
+        }
+      } catch (error) {
+        console.error("Error loading user quota:", error);
+      }
+    };
+
+    loadUserQuota();
+  }, []);
 
   const handleFileSelect = async (file: File) => {
+    // Check quota for free users
+    if (subscriptionTier === "free" && uploadsRemaining <= 0) {
+      setShowUpgradeDialog(true);
+      return;
+    }
+
     const allowedTypes = ["application/pdf", "image/png", "image/jpeg", "image/jpg"];
     if (!allowedTypes.includes(file.type)) {
       toast({
@@ -111,6 +154,18 @@ const PayslipUpload = ({ compact = false }: PayslipUploadProps) => {
         });
       }
 
+      // Decrement uploads_remaining for free users
+      if (subscriptionTier === "free") {
+        const { error: updateError } = await supabase
+          .from("profiles")
+          .update({ uploads_remaining: uploadsRemaining - 1 })
+          .eq("id", user.id);
+
+        if (!updateError) {
+          setUploadsRemaining(uploadsRemaining - 1);
+        }
+      }
+
       // Navigate to confirmation page
       navigate(`/confirm/${ocrResult.data.id}`);
 
@@ -191,6 +246,23 @@ const PayslipUpload = ({ compact = false }: PayslipUploadProps) => {
       <p className="text-xs text-muted-foreground mt-2">
         {compact ? "PDF, PNG, JPEG" : "Supports PDF, PNG, JPEG • Max 10MB"}
       </p>
+
+      <AlertDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Upload Limit Reached</AlertDialogTitle>
+            <AlertDialogDescription>
+              You've reached your free plan limit of 3 uploads. Upgrade to a paid plan for unlimited uploads and premium features like AI ChatKit.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => navigate("/pricing")}>
+              View Plans
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

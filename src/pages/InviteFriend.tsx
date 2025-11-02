@@ -9,10 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ArrowLeft, Copy, Mail, Gift } from "lucide-react";
 import { EmailVerificationBanner } from "@/components/EmailVerificationBanner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function InviteFriend() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [loadingCode, setLoadingCode] = useState(true);
   const [email, setEmail] = useState("");
   const [referralCode, setReferralCode] = useState("");
   const [referrals, setReferrals] = useState<any[]>([]);
@@ -22,42 +24,48 @@ export default function InviteFriend() {
 
   useEffect(() => {
     const loadReferrals = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/auth");
-        return;
-      }
-
-      setUserId(user.id);
-      setUserEmail(user.email || "");
-      setIsEmailVerified(!!user.email_confirmed_at);
-
-      // Get or create referral code
-      const { data: existingReferrals } = await supabase
-        .from("referrals")
-        .select("referral_code")
-        .eq("referrer_id", user.id)
-        .limit(1);
-
-      if (existingReferrals && existingReferrals.length > 0) {
-        setReferralCode(existingReferrals[0].referral_code);
-      } else {
-        // Generate new referral code
-        const { data: newCode } = await supabase.rpc("generate_referral_code");
-        if (newCode) {
-          setReferralCode(newCode);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          navigate("/auth");
+          return;
         }
-      }
 
-      // Load referral history
-      const { data: referralHistory } = await supabase
-        .from("referrals")
-        .select("*")
-        .eq("referrer_id", user.id)
-        .order("created_at", { ascending: false });
+        setUserId(user.id);
+        setUserEmail(user.email || "");
+        setIsEmailVerified(!!user.email_confirmed_at);
 
-      if (referralHistory) {
-        setReferrals(referralHistory);
+        // Get or create referral code
+        const { data: existingReferrals } = await supabase
+          .from("referrals")
+          .select("referral_code")
+          .eq("referrer_id", user.id)
+          .limit(1);
+
+        if (existingReferrals && existingReferrals.length > 0) {
+          setReferralCode(existingReferrals[0].referral_code);
+        } else {
+          // Generate new referral code
+          const { data: newCode } = await supabase.rpc("generate_referral_code");
+          if (newCode) {
+            setReferralCode(newCode);
+          }
+        }
+
+        // Load referral history
+        const { data: referralHistory } = await supabase
+          .from("referrals")
+          .select("*")
+          .eq("referrer_id", user.id)
+          .order("created_at", { ascending: false });
+
+        if (referralHistory) {
+          setReferrals(referralHistory);
+        }
+      } catch (error) {
+        console.error("Error loading referrals:", error);
+      } finally {
+        setLoadingCode(false);
       }
     };
 
@@ -164,29 +172,44 @@ export default function InviteFriend() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label>Referral Code</Label>
-                <div className="flex gap-2 mt-1">
-                  <Input value={referralCode} readOnly className="font-mono" />
-                  <Button onClick={copyReferralCode} variant="outline">
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+              {loadingCode ? (
+                <>
+                  <div>
+                    <Label>Referral Code</Label>
+                    <Skeleton className="h-10 w-full mt-1" />
+                  </div>
+                  <div>
+                    <Label>Referral Link</Label>
+                    <Skeleton className="h-10 w-full mt-1" />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <Label>Referral Code</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input value={referralCode} readOnly className="font-mono" />
+                      <Button onClick={copyReferralCode} variant="outline">
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
 
-              <div>
-                <Label>Referral Link</Label>
-                <div className="flex gap-2 mt-1">
-                  <Input
-                    value={`${window.location.origin}/auth?ref=${referralCode}`}
-                    readOnly
-                    className="text-sm"
-                  />
-                  <Button onClick={copyReferralLink} variant="outline">
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+                  <div>
+                    <Label>Referral Link</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input
+                        value={`${window.location.origin}/auth?ref=${referralCode}`}
+                        readOnly
+                        className="text-sm"
+                      />
+                      <Button onClick={copyReferralLink} variant="outline">
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 

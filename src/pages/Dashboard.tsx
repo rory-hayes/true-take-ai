@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Upload, TrendingUp, DollarSign } from "lucide-react";
+import { FileText, Upload, TrendingUp, DollarSign, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import FloatingChatButton from "@/components/FloatingChatButton";
 import PayslipUpload from "@/components/PayslipUpload";
 import PayslipChart from "@/components/PayslipChart";
@@ -26,6 +27,8 @@ const Dashboard = () => {
   });
   const [selectedDialog, setSelectedDialog] = useState<'uploads' | 'latest' | 'trend' | null>(null);
   const [currency, setCurrency] = useState('EUR');
+  const [subscriptionTier, setSubscriptionTier] = useState<string>("free");
+  const [uploadsRemaining, setUploadsRemaining] = useState<number>(3);
 
   const getCurrencySymbol = (curr: string) => {
     const symbols: Record<string, string> = {
@@ -71,15 +74,21 @@ const Dashboard = () => {
 
   const fetchPayslipData = async (userId: string) => {
     try {
-      // Fetch user profile for currency
+      // Fetch user profile for currency, subscription tier, and uploads remaining
       const { data: profile } = await supabase
         .from('profiles')
-        .select('currency')
+        .select('currency, subscription_tier, uploads_remaining')
         .eq('id', userId)
         .single();
 
       if (profile?.currency) {
         setCurrency(profile.currency);
+      }
+      if (profile?.subscription_tier) {
+        setSubscriptionTier(profile.subscription_tier);
+      }
+      if (profile?.uploads_remaining !== undefined) {
+        setUploadsRemaining(profile.uploads_remaining);
       }
 
       // Fetch confirmed payslip data
@@ -161,6 +170,18 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         {!isEmailVerified && <EmailVerificationBanner userEmail={user?.email || ""} />}
+        
+        {subscriptionTier === "free" && (
+          <Alert className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <span className="font-semibold">{uploadsRemaining} uploads remaining</span> on your free plan.
+              {uploadsRemaining <= 1 && (
+                <> <a href="/pricing" className="underline hover:text-primary">Upgrade now</a> for unlimited uploads and premium features.</>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
         
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Your Dashboard</h1>
