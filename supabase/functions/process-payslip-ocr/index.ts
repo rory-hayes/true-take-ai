@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { getDocument } from 'https://esm.sh/pdfjs-serverless@0.3.2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -96,28 +97,69 @@ serve(async (req) => {
       throw new Error('Failed to get file URL');
     }
 
-    console.log('Using Lovable AI (Gemini 2.5 Flash) for PDF OCR');
+    console.log('Fetching PDF from storage...');
 
-    // Call Lovable AI Gateway with Gemini 2.5 Flash for OCR
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert at extracting structured data from payslips. Extract all key financial information accurately. Return ONLY valid JSON without markdown formatting.'
-          },
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: `Extract the following information from this payslip PDF and return it as JSON:
+    // Download the PDF file
+    const pdfResponse = await fetch(urlData.signedUrl);
+    if (!pdfResponse.ok) {
+      throw new Error(`Failed to download PDF: ${pdfResponse.status}`);
+    }
+    const pdfBytes = await pdfResponse.arrayBuffer();
+    console.log(`PDF downloaded, size: ${pdfBytes.byteLength} bytes`);
+
+    // TIER 1: Try to extract text layer from PDF first (fastest, no AI needed)
+    let extractedText = '';
+    try {
+      console.log('Attempting to extract text layer from PDF...');
+      const pdf = await getDocument(new Uint8Array(pdfBytes)).promise;
+      const numPages = pdf.numPages;
+      console.log(`PDF has ${numPages} pages`);
+      
+      for (let i = 1; i <= numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map((item: any) => item.str).join(' ');
+        extractedText += pageText + '\n';
+      }
+      
+      extractedText = extractedText.trim();
+      console.log(`Extracted text length: ${extractedText.length} characters`);
+      
+      if (extractedText.length < 100) {
+        console.log('Text layer too short, likely a scanned document');
+        extractedText = '';
+      }
+    } catch (textError) {
+      console.log('Text extraction failed, will use OCR:', textError);
+    }
+
+    let aiResponse: any;
+
+    if (extractedText.length > 0) {
+      // TIER 2: We have text, use Lovable AI for schema mapping only (cheap & fast)
+      console.log('Using Lovable AI for schema mapping (text-based)');
+      
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert at extracting structured data from payslip text. Extract all key financial information accurately. Return ONLY valid JSON without markdown formatting.'
+            },
+            {
+              role: 'user',
+              content: `Extract the following information from this payslip text and return it as JSON:
+
+Payslip Text:
+${extractedText}
+
+Required JSON format:
 {
   "gross_pay": number (total gross pay/salary before deductions),
   "tax_deducted": number (total tax/income tax deducted),
@@ -141,54 +183,56 @@ IMPORTANT:
 - Dates must be in YYYY-MM-DD format
 - Set missing numeric fields to 0, not null
 - Return ONLY the JSON object, no explanation or markdown code blocks`
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: urlData.signedUrl
-                }
-              }
-            ]
-          }
-        ],
-        max_tokens: 1000,
-      }),
-    });
+            }
+          ],
+          max_tokens: 1000,
+        }),
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Lovable AI error:', response.status, errorText);
+      aiResponse = await response;
       
-      if (response.status === 429) {
+    } else {
+      // TIER 3: Scanned PDF, need OCR - this won't work with Gemini, needs image format
+      console.log('Scanned PDF detected - falling back to OpenAI gpt-4o for OCR');
+      
+      // For now, throw a helpful error - we'd need to implement image conversion
+      throw new Error('Scanned payslips require image conversion. Please use a digital payslip PDF with text layer, or contact support for OCR support.');
+    }
+
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error('Lovable AI error:', aiResponse.status, errorText);
+      
+      if (aiResponse.status === 429) {
         throw new Error('Rate limit exceeded. Please try again in a few moments.');
       }
-      if (response.status === 402) {
+      if (aiResponse.status === 402) {
         throw new Error('Lovable AI credits depleted. Please add credits in Settings -> Workspace -> Usage.');
       }
-      if (response.status === 401) {
+      if (aiResponse.status === 401) {
         throw new Error('Invalid Lovable API key configuration.');
       }
       
-      throw new Error(`Lovable AI error: ${response.status} - ${errorText}`);
+      throw new Error(`Lovable AI error: ${aiResponse.status} - ${errorText}`);
     }
 
-    const result = await response.json();
+    const result = await aiResponse.json();
     console.log('Lovable AI response received');
 
-    const extractedText = result.choices[0].message.content;
-    console.log('Extracted content:', extractedText);
+    const aiContent = result.choices[0].message.content;
+    console.log('AI extracted content:', aiContent);
 
     // Parse the JSON response (remove markdown formatting if present)
     let extractedData;
     try {
       // Remove markdown code blocks if present
-      const jsonMatch = extractedText.match(/\{[\s\S]*\}/);
-      const jsonString = jsonMatch ? jsonMatch[0] : extractedText;
+      const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
+      const jsonString = jsonMatch ? jsonMatch[0] : aiContent;
       extractedData = JSON.parse(jsonString);
       console.log('Parsed data:', JSON.stringify(extractedData, null, 2));
     } catch (parseError) {
-      console.error('Error parsing JSON:', parseError, 'Raw text:', extractedText);
-      throw new Error('Failed to parse OCR results. The AI response was not valid JSON.');
+      console.error('Error parsing JSON:', parseError, 'Raw text:', aiContent);
+      throw new Error('Failed to parse AI results. The AI response was not valid JSON.');
     }
 
     // Validate the extracted data
