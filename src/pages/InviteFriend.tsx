@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Copy, Mail, Gift } from "lucide-react";
 import { EmailVerificationBanner } from "@/components/EmailVerificationBanner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function InviteFriend() {
   const navigate = useNavigate();
@@ -270,21 +271,34 @@ export default function InviteFriend() {
                   />
                 </div>
 
-                <Button 
-                  type="submit" 
-                  disabled={loading || !isEmailVerified || invitesSent >= maxInvites}
-                  aria-label="Send invitation email"
-                  title={
-                    !isEmailVerified 
-                      ? "Email verification required" 
-                      : invitesSent >= maxInvites 
-                        ? "Invite limit reached" 
-                        : "Send invitation"
-                  }
-                >
-                  <Mail className="mr-2 h-4 w-4" />
-                  {loading ? "Sending..." : invitesSent >= maxInvites ? "Limit Reached" : "Send Invitation"}
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-block w-full">
+                        <Button 
+                          type="submit" 
+                          disabled={loading || loadingCode || !isEmailVerified || invitesSent >= maxInvites}
+                          aria-label="Send invitation email"
+                          className="w-full"
+                        >
+                          <Mail className="mr-2 h-4 w-4" />
+                          {loading ? "Sending..." : invitesSent >= maxInvites ? "Limit Reached" : "Send Invitation"}
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {(loadingCode || !isEmailVerified || invitesSent >= maxInvites) && (
+                      <TooltipContent>
+                        <p>
+                          {loadingCode 
+                            ? "Loading referral code..." 
+                            : !isEmailVerified 
+                              ? "Please verify your email before sending invites" 
+                              : "You have reached your lifetime invite limit (3 invites)"}
+                        </p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
               </form>
             </CardContent>
           </Card>
