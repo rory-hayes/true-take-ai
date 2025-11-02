@@ -13,9 +13,9 @@ serve(async (req) => {
   }
 
   try {
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIApiKey) {
-      throw new Error('OPENAI_API_KEY is not configured');
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    if (!lovableApiKey) {
+      throw new Error('LOVABLE_API_KEY is not configured');
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -48,17 +48,17 @@ serve(async (req) => {
       throw new Error('Failed to get file URL');
     }
 
-    console.log('Calling OpenAI for PDF OCR with URL:', urlData.signedUrl);
+    console.log('Calling Lovable AI for PDF OCR with URL:', urlData.signedUrl);
 
-    // Call OpenAI with PDF URL using GPT-5
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Call Lovable AI with PDF URL using Gemini
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-5-2025-08-07',
+        model: 'google/gemini-2.5-flash',
         messages: [
           {
             role: 'system',
@@ -105,20 +105,23 @@ Return ONLY the JSON object, no explanation or markdown.`
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenAI API error:', response.status, errorText);
+      console.error('Lovable AI error:', response.status, errorText);
       
       if (response.status === 429) {
-        throw new Error('OpenAI rate limit exceeded. Please check your API key credits or wait before retrying.');
+        throw new Error('Rate limit exceeded. Please try again in a few moments.');
+      }
+      if (response.status === 402) {
+        throw new Error('Lovable AI credits depleted. Please add credits in Settings -> Workspace -> Usage.');
       }
       if (response.status === 401) {
-        throw new Error('Invalid OpenAI API key. Please check your OPENAI_API_KEY secret.');
+        throw new Error('Invalid API key configuration.');
       }
       
-      throw new Error(`OpenAI API error: ${response.status}`);
+      throw new Error(`Lovable AI error: ${response.status}`);
     }
 
     const result = await response.json();
-    console.log('OpenAI response:', JSON.stringify(result));
+    console.log('Lovable AI response:', JSON.stringify(result));
 
     const extractedText = result.choices[0].message.content;
     console.log('Extracted text:', extractedText);
