@@ -17,22 +17,42 @@ import {
 
 interface PayslipUploadProps {
   compact?: boolean;
+  isEmailVerified?: boolean;
+  subscriptionTier?: string;
+  uploadsRemaining?: number;
 }
 
-const PayslipUpload = ({ compact = false }: PayslipUploadProps) => {
+const PayslipUpload = ({ 
+  compact = false, 
+  isEmailVerified: propIsEmailVerified,
+  subscriptionTier: propSubscriptionTier,
+  uploadsRemaining: propUploadsRemaining 
+}: PayslipUploadProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [internalIsEmailVerified, setInternalIsEmailVerified] = useState(true);
   const [subscriptionTier, setSubscriptionTier] = useState<string>("free");
   const [uploadsRemaining, setUploadsRemaining] = useState<number>(3);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  
+  const isEmailVerified = propIsEmailVerified ?? internalIsEmailVerified;
 
   useEffect(() => {
+    // If props are provided, use them; otherwise fetch
+    if (propSubscriptionTier !== undefined && propUploadsRemaining !== undefined) {
+      setSubscriptionTier(propSubscriptionTier);
+      setUploadsRemaining(propUploadsRemaining);
+      return;
+    }
+
     const loadUserQuota = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
+
+        setInternalIsEmailVerified(!!user.email_confirmed_at);
 
         const { data: profile } = await supabase
           .from("profiles")
@@ -50,9 +70,19 @@ const PayslipUpload = ({ compact = false }: PayslipUploadProps) => {
     };
 
     loadUserQuota();
-  }, []);
+  }, [propSubscriptionTier, propUploadsRemaining]);
 
   const handleFileSelect = async (file: File) => {
+    // Check email verification first
+    if (!isEmailVerified) {
+      toast({
+        title: "Email verification required",
+        description: "Please verify your email before uploading payslips",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Check quota for free users
     if (subscriptionTier === "free" && uploadsRemaining <= 0) {
       setShowUpgradeDialog(true);
@@ -227,7 +257,7 @@ const PayslipUpload = ({ compact = false }: PayslipUploadProps) => {
       }`}
       onDragOver={(e) => {
         e.preventDefault();
-        if (!(subscriptionTier === "free" && uploadsRemaining <= 0)) {
+        if (isEmailVerified && !(subscriptionTier === "free" && uploadsRemaining <= 0)) {
           setIsDragging(true);
         }
       }}
@@ -259,21 +289,34 @@ const PayslipUpload = ({ compact = false }: PayslipUploadProps) => {
         className="hidden"
         id={compact ? "file-upload-compact" : "file-upload"}
         aria-label="Upload payslip file"
-        disabled={subscriptionTier === "free" && uploadsRemaining <= 0}
+        disabled={!isEmailVerified || (subscriptionTier === "free" && uploadsRemaining <= 0)}
       />
       <Button 
-        asChild={!(subscriptionTier === "free" && uploadsRemaining <= 0)}
+        asChild={!((!isEmailVerified) || (subscriptionTier === "free" && uploadsRemaining <= 0))}
         variant="outline" 
-        disabled={isUploading || (subscriptionTier === "free" && uploadsRemaining <= 0)} 
+        disabled={isUploading || !isEmailVerified || (subscriptionTier === "free" && uploadsRemaining <= 0)} 
         className="w-full"
         onClick={(e) => {
-          if (subscriptionTier === "free" && uploadsRemaining <= 0) {
+          if (!isEmailVerified || (subscriptionTier === "free" && uploadsRemaining <= 0)) {
             e.preventDefault();
-            setShowUpgradeDialog(true);
+            if (!isEmailVerified) {
+              toast({
+                title: "Email verification required",
+                description: "Please verify your email before uploading payslips",
+                variant: "destructive",
+              });
+            } else {
+              setShowUpgradeDialog(true);
+            }
           }
         }}
       >
-        {subscriptionTier === "free" && uploadsRemaining <= 0 ? (
+        {!isEmailVerified ? (
+          <div className="cursor-not-allowed">
+            <Upload className="mr-2 h-4 w-4 inline" />
+            Verify Email to Upload
+          </div>
+        ) : subscriptionTier === "free" && uploadsRemaining <= 0 ? (
           <div className="cursor-not-allowed">
             <Upload className="mr-2 h-4 w-4 inline" />
             Upgrade to Upload

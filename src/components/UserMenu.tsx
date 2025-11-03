@@ -1,4 +1,4 @@
-import { User, Settings, CreditCard, Users, LogOut } from "lucide-react";
+import { User, Settings, CreditCard, Users, LogOut, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -16,9 +16,10 @@ import { useQuery } from "@tanstack/react-query";
 
 interface UserMenuProps {
   userEmail: string;
+  isEmailVerified?: boolean;
 }
 
-export const UserMenu = ({ userEmail }: UserMenuProps) => {
+export const UserMenu = ({ userEmail, isEmailVerified = true }: UserMenuProps) => {
   const navigate = useNavigate();
 
   const { data: profile } = useQuery({
@@ -88,9 +89,16 @@ export const UserMenu = ({ userEmail }: UserMenuProps) => {
             <p className="text-sm font-medium leading-none">
               {profile?.full_name || "User"}
             </p>
-            <p className="text-xs leading-none text-muted-foreground">
-              {userEmail}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs leading-none text-muted-foreground">
+                {userEmail}
+              </p>
+              {!isEmailVerified && (
+                <Badge variant="destructive" className="text-[10px] px-1 py-0 h-4">
+                  Unverified
+                </Badge>
+              )}
+            </div>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

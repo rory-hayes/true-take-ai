@@ -60,7 +60,7 @@ export default function Pricing() {
 
   const handleSubscribe = async (priceId: string, planType: string) => {
     if (!isEmailVerified) {
-      toast.error("Please verify your email before subscribing");
+      toast.error("Please verify your email address to subscribe. Check your inbox for the verification link.");
       return;
     }
     
@@ -84,7 +84,7 @@ export default function Pricing() {
 
   const handlePurchaseTaxPackage = async () => {
     if (!isEmailVerified) {
-      toast.error("Please verify your email before making purchases");
+      toast.error("Please verify your email address to make purchases. Check your inbox for the verification link.");
       return;
     }
     
@@ -236,15 +236,20 @@ export default function Pricing() {
               <CardFooter>
                 <Button
                   className="w-full"
-                  disabled={plan.disabled || loading !== null}
+                  disabled={plan.disabled || loading !== null || (!isEmailVerified && plan.tier !== "free")}
                   onClick={() => {
                     if (plan.priceId) {
                       handleSubscribe(plan.priceId, plan.tier);
                     }
                   }}
                   variant={plan.popular ? "default" : "outline"}
+                  title={!isEmailVerified && plan.tier !== "free" ? "Email verification required" : undefined}
                 >
-                  {loading === plan.tier ? "Processing..." : plan.cta}
+                  {loading === plan.tier 
+                    ? "Processing..." 
+                    : (!isEmailVerified && plan.tier !== "free")
+                      ? "Verify Email to Subscribe"
+                      : plan.cta}
                 </Button>
               </CardFooter>
             </Card>
@@ -301,9 +306,14 @@ export default function Pricing() {
             <Button
               className="w-full"
               onClick={handlePurchaseTaxPackage}
-              disabled={loading !== null}
+              disabled={loading !== null || !isEmailVerified}
+              title={!isEmailVerified ? "Email verification required" : undefined}
             >
-              {loading === "tax_package" ? "Processing..." : "Purchase Tax Package"}
+              {loading === "tax_package" 
+                ? "Processing..." 
+                : !isEmailVerified 
+                  ? "Verify Email to Purchase"
+                  : "Purchase Tax Package"}
             </Button>
           </CardFooter>
         </Card>

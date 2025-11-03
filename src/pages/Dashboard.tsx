@@ -147,7 +147,7 @@ const Dashboard = () => {
               Tax Man
             </span>
           </div>
-          <UserMenu userEmail={user?.email || ""} />
+          <UserMenu userEmail={user?.email || ""} isEmailVerified={isEmailVerified} />
         </div>
       </header>
 
@@ -233,7 +233,7 @@ const Dashboard = () => {
               <CardTitle className="text-sm font-medium">Quick Upload</CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <PayslipUpload compact />
+              <PayslipUpload compact isEmailVerified={isEmailVerified} subscriptionTier={subscriptionTier} uploadsRemaining={uploadsRemaining} />
             </CardContent>
           </Card>
         </div>
