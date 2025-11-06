@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle2 } from "lucide-react";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import { getCurrencySymbol } from "@/lib/currencyUtils";
 
 interface PayslipData {
   id: string;
@@ -23,9 +25,12 @@ const ConfirmPayslip = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { currency } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [data, setData] = useState<PayslipData | null>(null);
+  
+  const currencySymbol = getCurrencySymbol(currency);
 
   useEffect(() => {
     fetchPayslipData();
@@ -173,7 +178,7 @@ const ConfirmPayslip = () => {
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="gross_pay">Gross Pay (€)</Label>
+                  <Label htmlFor="gross_pay">Gross Pay ({currencySymbol})</Label>
                   <Input
                     id="gross_pay"
                     type="number"
@@ -184,7 +189,7 @@ const ConfirmPayslip = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="net_pay">Net Pay (€)</Label>
+                  <Label htmlFor="net_pay">Net Pay ({currencySymbol})</Label>
                   <Input
                     id="net_pay"
                     type="number"
@@ -195,7 +200,7 @@ const ConfirmPayslip = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="tax_deducted">Tax Deducted (€)</Label>
+                  <Label htmlFor="tax_deducted">Tax Deducted ({currencySymbol})</Label>
                   <Input
                     id="tax_deducted"
                     type="number"
@@ -206,7 +211,7 @@ const ConfirmPayslip = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="pension">Pension (€)</Label>
+                  <Label htmlFor="pension">Pension ({currencySymbol})</Label>
                   <Input
                     id="pension"
                     type="number"
@@ -217,7 +222,7 @@ const ConfirmPayslip = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="social_security">Social Security (€)</Label>
+                  <Label htmlFor="social_security">Social Security ({currencySymbol})</Label>
                   <Input
                     id="social_security"
                     type="number"
@@ -228,7 +233,7 @@ const ConfirmPayslip = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="other_deductions">Other Deductions (€)</Label>
+                  <Label htmlFor="other_deductions">Other Deductions ({currencySymbol})</Label>
                   <Input
                     id="other_deductions"
                     type="number"

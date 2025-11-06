@@ -13,10 +13,12 @@ import PayslipUpload from "@/components/PayslipUpload";
 import PayslipChart from "@/components/PayslipChart";
 import { UserMenu } from "@/components/UserMenu";
 import { EmailVerificationBanner } from "@/components/EmailVerificationBanner";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { currency, setCurrency } = useCurrency();
   const [user, setUser] = useState<any>(null);
   const [isEmailVerified, setIsEmailVerified] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,7 +29,6 @@ const Dashboard = () => {
     trend: null as string | null,
   });
   const [selectedDialog, setSelectedDialog] = useState<'uploads' | 'latest' | 'trend' | null>(null);
-  const [currency, setCurrency] = useState('EUR');
   const [subscriptionTier, setSubscriptionTier] = useState<string>("free");
   const [uploadsRemaining, setUploadsRemaining] = useState<number>(3);
 

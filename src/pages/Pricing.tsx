@@ -7,6 +7,15 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Check, ArrowLeft, Sparkles } from "lucide-react";
 import { EmailVerificationBanner } from "@/components/EmailVerificationBanner";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import { formatCurrency } from "@/lib/currencyUtils";
+
+// Pricing in EUR as base (what Stripe charges)
+const BASE_PRICES = {
+  monthly: 5,
+  annual: 54,
+  tax_package: 10,
+};
 
 const STRIPE_PRICES = {
   monthly: "price_1SP31vFI6AfZKCoZgbwMQ8tX",
@@ -18,6 +27,7 @@ export default function Pricing() {
   const navigate = useNavigate();
   const location = useLocation();
   const annualCardRef = useRef<HTMLDivElement>(null);
+  const { currency } = useCurrency();
   const [loading, setLoading] = useState<string | null>(null);
   const [currentTier, setCurrentTier] = useState<string>("free");
   const [userId, setUserId] = useState<string>("");
@@ -127,7 +137,7 @@ export default function Pricing() {
     {
       name: "Free",
       tier: "free",
-      price: "€0",
+      price: formatCurrency(0, currency),
       period: "forever",
       description: "Perfect for trying out the service",
       features: [
@@ -142,7 +152,7 @@ export default function Pricing() {
     {
       name: "Monthly",
       tier: "monthly",
-      price: "€5",
+      price: formatCurrency(BASE_PRICES.monthly, currency),
       period: "/month",
       description: "Great for regular users",
       features: [
@@ -159,10 +169,10 @@ export default function Pricing() {
     {
       name: "Annual",
       tier: "annual",
-      price: "€54",
+      price: formatCurrency(BASE_PRICES.annual, currency),
       period: "/year",
       description: "Best value - Save 10%",
-      badge: "Save €6",
+      badge: `Save ${formatCurrency(BASE_PRICES.monthly * 12 - BASE_PRICES.annual, currency)}`,
       features: [
         "Everything in Monthly",
         "10% discount",
@@ -280,7 +290,7 @@ export default function Pricing() {
           </CardHeader>
           <CardContent>
             <div className="mb-4">
-              <span className="text-4xl font-bold">€10</span>
+              <span className="text-4xl font-bold">{formatCurrency(BASE_PRICES.tax_package, currency)}</span>
               <span className="text-muted-foreground"> one-time</span>
             </div>
             <ul className="space-y-3 mb-6">

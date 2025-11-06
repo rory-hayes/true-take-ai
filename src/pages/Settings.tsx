@@ -9,12 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { ArrowLeft, Trash2 } from "lucide-react";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const CURRENCIES = ["EUR", "USD", "GBP", "CHF", "AUD", "CAD"];
 const COUNTRIES = ["IE", "UK", "US", "FR", "DE", "ES", "IT", "NL", "BE", "CH"];
 
 export default function Settings() {
   const navigate = useNavigate();
+  const { setCurrency: setGlobalCurrency, refreshCurrency } = useCurrency();
   const [loading, setLoading] = useState(false);
   const [currency, setCurrency] = useState("EUR");
   const [country, setCountry] = useState("IE");
@@ -63,11 +65,12 @@ export default function Settings() {
 
       if (error) throw error;
 
-      toast.success("Settings saved successfully");
-      
-      // Show specific currency update message if currency changed
+      // Update global currency context if changed
       if (previousCurrency !== currency) {
-        toast.success(`Currency updated to ${currency}`);
+        setGlobalCurrency(currency);
+        toast.success(`Currency updated to ${currency}. All amounts have been updated.`);
+      } else {
+        toast.success("Settings saved successfully");
       }
     } catch (error: any) {
       toast.error(error.message || "Error saving settings");

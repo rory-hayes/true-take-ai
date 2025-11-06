@@ -9,14 +9,15 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "sonner";
 import { ArrowLeft, Download, Edit2, Save, Trash2, X } from "lucide-react";
 import { formatCurrency } from "@/lib/currencyUtils";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 export default function PayslipDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { currency } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [currency, setCurrency] = useState("EUR");
   const [payslipData, setPayslipData] = useState<any>(null);
   const [payslip, setPayslip] = useState<any>(null);
   const [editValues, setEditValues] = useState({
@@ -38,17 +39,6 @@ export default function PayslipDetail() {
       if (!user) {
         navigate("/auth");
         return;
-      }
-
-      // Get currency
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("currency")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (profile?.currency) {
-        setCurrency(profile.currency);
       }
 
       // Get payslip data
