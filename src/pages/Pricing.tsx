@@ -9,6 +9,7 @@ import { Check, ArrowLeft, Sparkles } from "lucide-react";
 import { EmailVerificationBanner } from "@/components/EmailVerificationBanner";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { formatCurrency } from "@/lib/currencyUtils";
+import { PlanConfirmationDialog } from "@/components/PlanConfirmationDialog";
 
 // Pricing in EUR as base (what Stripe charges)
 const BASE_PRICES = {
@@ -33,6 +34,15 @@ export default function Pricing() {
   const [userId, setUserId] = useState<string>("");
   const [userEmail, setUserEmail] = useState<string>("");
   const [isEmailVerified, setIsEmailVerified] = useState(true);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<{
+    priceId: string;
+    planType: string;
+    name: string;
+    price: string;
+    period: string;
+    features: string[];
+  } | null>(null);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -68,22 +78,39 @@ export default function Pricing() {
     }
   }, [location.state]);
 
-  const handleSubscribe = async (priceId: string, planType: string) => {
+  const handleSubscribeClick = (plan: typeof plans[0]) => {
     if (!isEmailVerified) {
       toast.error("Please verify your email address to subscribe. Check your inbox for the verification link.");
       return;
     }
+
+    if (!plan.priceId) return;
+
+    setSelectedPlan({
+      priceId: plan.priceId,
+      planType: plan.tier,
+      name: plan.name,
+      price: plan.price,
+      period: plan.period,
+      features: plan.features,
+    });
+    setConfirmDialogOpen(true);
+  };
+
+  const handleConfirmSubscription = async () => {
+    if (!selectedPlan) return;
     
-    setLoading(planType);
+    setLoading(selectedPlan.planType);
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { priceId, planType },
+        body: { priceId: selectedPlan.priceId, planType: selectedPlan.planType },
       });
 
       if (error) throw error;
 
       if (data?.url) {
         window.open(data.url, "_blank");
+        setConfirmDialogOpen(false);
       }
     } catch (error: any) {
       toast.error(error.message || "Error creating checkout session");
@@ -92,22 +119,42 @@ export default function Pricing() {
     }
   };
 
-  const handlePurchaseTaxPackage = async () => {
+  const handleTaxPackageClick = () => {
     if (!isEmailVerified) {
       toast.error("Please verify your email address to make purchases. Check your inbox for the verification link.");
       return;
     }
+
+    setSelectedPlan({
+      priceId: STRIPE_PRICES.tax_package,
+      planType: "tax_package",
+      name: "End of Year Tax Package",
+      price: formatCurrency(BASE_PRICES.tax_package, currency),
+      period: " one-time",
+      features: [
+        "AI-analyzed tax return breakdown",
+        "Personalized tax saving recommendations",
+        "Deduction opportunities identification",
+        "Step-by-step filing guide",
+      ],
+    });
+    setConfirmDialogOpen(true);
+  };
+
+  const handleConfirmPurchase = async () => {
+    if (!selectedPlan) return;
     
-    setLoading("tax_package");
+    setLoading(selectedPlan.planType);
     try {
       const { data, error } = await supabase.functions.invoke("create-payment", {
-        body: { priceId: STRIPE_PRICES.tax_package },
+        body: { priceId: selectedPlan.priceId },
       });
 
       if (error) throw error;
 
       if (data?.url) {
         window.open(data.url, "_blank");
+        setConfirmDialogOpen(false);
       }
     } catch (error: any) {
       toast.error(error.message || "Error creating payment session");
@@ -247,13 +294,10 @@ export default function Pricing() {
                 <Button
                   className="w-full"
                   disabled={plan.disabled || loading !== null || (!isEmailVerified && plan.tier !== "free")}
-                  onClick={() => {
-                    if (plan.priceId) {
-                      handleSubscribe(plan.priceId, plan.tier);
-                    }
-                  }}
+                  onClick={() => handleSubscribeClick(plan)}
                   variant={plan.popular ? "default" : "outline"}
                   title={!isEmailVerified && plan.tier !== "free" ? "Email verification required" : undefined}
+                  aria-label={`Subscribe to ${plan.name} plan`}
                 >
                   {loading === plan.tier 
                     ? "Processing..." 
@@ -315,9 +359,10 @@ export default function Pricing() {
           <CardFooter>
             <Button
               className="w-full"
-              onClick={handlePurchaseTaxPackage}
+              onClick={handleTaxPackageClick}
               disabled={loading !== null || !isEmailVerified}
               title={!isEmailVerified ? "Email verification required" : undefined}
+              aria-label="Purchase End of Year Tax Package"
             >
               {loading === "tax_package" 
                 ? "Processing..." 
@@ -327,6 +372,17 @@ export default function Pricing() {
             </Button>
           </CardFooter>
         </Card>
+
+        <PlanConfirmationDialog
+          open={confirmDialogOpen}
+          onOpenChange={setConfirmDialogOpen}
+          onConfirm={selectedPlan?.planType === "tax_package" ? handleConfirmPurchase : handleConfirmSubscription}
+          planName={selectedPlan?.name || ""}
+          price={selectedPlan?.price || ""}
+          period={selectedPlan?.period || ""}
+          features={selectedPlan?.features || []}
+          isLoading={loading !== null}
+        />
       </div>
     </div>
   );
