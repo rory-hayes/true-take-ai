@@ -24,6 +24,9 @@ export default function InviteFriend() {
   const [isEmailVerified, setIsEmailVerified] = useState(true);
   const [invitesSent, setInvitesSent] = useState(0);
   const [maxInvites, setMaxInvites] = useState(3);
+  const [dailyInvitesSent, setDailyInvitesSent] = useState(0);
+  const [maxDailyInvites] = useState(5);
+  const [resetTime, setResetTime] = useState<string>("");
 
   useEffect(() => {
     const loadReferrals = async () => {
@@ -41,13 +44,23 @@ export default function InviteFriend() {
         // Get invite quota
         const { data: profile } = await supabase
           .from("profiles")
-          .select("invites_sent, max_invites")
+          .select("invites_sent, max_invites, invites_sent_today, last_invite_date")
           .eq("id", user.id)
           .single();
 
         if (profile) {
           setInvitesSent(profile.invites_sent || 0);
           setMaxInvites(profile.max_invites || 3);
+          
+          // Check if daily invites are from today
+          const today = new Date().toISOString().split('T')[0];
+          const isToday = profile.last_invite_date === today;
+          setDailyInvitesSent(isToday ? (profile.invites_sent_today || 0) : 0);
+          
+          // Set reset time to midnight tonight
+          const tomorrow = new Date();
+          tomorrow.setHours(24, 0, 0, 0);
+          setResetTime(tomorrow.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
         }
 
         // Get or create referral code
@@ -108,6 +121,8 @@ export default function InviteFriend() {
       if (error) {
         if (error.message?.includes("Lifetime invite limit reached")) {
           toast.error(error.message);
+        } else if (error.message?.includes("Daily invite limit reached")) {
+          toast.error(error.message);
         } else if (error.message?.includes("Email verification required")) {
           toast.error(error.message);
         } else {
@@ -118,10 +133,11 @@ export default function InviteFriend() {
       }
 
       toast.success(
-        `Invitation sent successfully! ${data.invites_remaining} invites remaining.`
+        `Invitation sent! ${data.invites_remaining} lifetime invites remaining, ${data.daily_invites_remaining} today.`
       );
       setEmail("");
       setInvitesSent(invitesSent + 1);
+      setDailyInvitesSent(dailyInvitesSent + 1);
 
       // Reload referrals
       const { data: referralHistory } = await supabase
@@ -152,14 +168,21 @@ export default function InviteFriend() {
   };
 
   const getStatusBadge = (status: string) => {
-    const colors = {
-      pending: "bg-yellow-500",
-      completed: "bg-blue-500",
-      rewarded: "bg-green-500",
+    const statusConfig = {
+      pending: { label: "Sent", className: "bg-blue-500" },
+      completed: { label: "Signed Up", className: "bg-purple-500" },
+      rewarded: { label: "Rewarded", className: "bg-green-500" },
+      expired: { label: "Expired", className: "bg-gray-500" },
     };
+    
+    const config = statusConfig[status as keyof typeof statusConfig] || { 
+      label: status, 
+      className: "bg-gray-500" 
+    };
+    
     return (
-      <Badge className={colors[status as keyof typeof colors] || "bg-gray-500"}>
-        {status}
+      <Badge className={config.className}>
+        {config.label}
       </Badge>
     );
   };
@@ -185,9 +208,19 @@ export default function InviteFriend() {
               Share the love and get rewarded! Both you and your friend get 1 month free
               when they subscribe.
             </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              You have <strong>{maxInvites - invitesSent}</strong> of <strong>{maxInvites}</strong> lifetime invites remaining.
-            </p>
+            <div className="text-sm text-muted-foreground mt-2 space-y-1">
+              <p>
+                <strong>Lifetime:</strong> {maxInvites - invitesSent} of {maxInvites} invites remaining
+              </p>
+              <p>
+                <strong>Today:</strong> {maxDailyInvites - dailyInvitesSent} of {maxDailyInvites} invites remaining
+                {dailyInvitesSent >= maxDailyInvites && resetTime && (
+                  <span className="text-orange-600 font-semibold ml-1">
+                    (resets at {resetTime})
+                  </span>
+                )}
+              </p>
+            </div>
           </div>
 
           <Card className="border-primary bg-gradient-to-br from-primary/5 to-primary/10">
@@ -277,23 +310,27 @@ export default function InviteFriend() {
                       <span className="inline-block w-full">
                         <Button 
                           type="submit" 
-                          disabled={loading || loadingCode || !isEmailVerified || invitesSent >= maxInvites}
+                          disabled={loading || loadingCode || !isEmailVerified || invitesSent >= maxInvites || dailyInvitesSent >= maxDailyInvites}
                           aria-label="Send invitation email"
                           className="w-full"
                         >
                           <Mail className="mr-2 h-4 w-4" />
-                          {loading ? "Sending..." : invitesSent >= maxInvites ? "Limit Reached" : "Send Invitation"}
+                          {loading ? "Sending..." : invitesSent >= maxInvites ? "Lifetime Limit Reached" : dailyInvitesSent >= maxDailyInvites ? "Daily Limit Reached" : "Send Invitation"}
                         </Button>
                       </span>
                     </TooltipTrigger>
-                    {(loadingCode || !isEmailVerified || invitesSent >= maxInvites) && (
+                    {(loadingCode || !isEmailVerified || invitesSent >= maxInvites || dailyInvitesSent >= maxDailyInvites) && (
                       <TooltipContent>
                         <p>
                           {loadingCode 
                             ? "Loading referral code..." 
                             : !isEmailVerified 
                               ? "Please verify your email before sending invites" 
-                              : "You have reached your lifetime invite limit (3 invites)"}
+                              : invitesSent >= maxInvites
+                                ? `You have reached your lifetime invite limit (${maxInvites} invites)`
+                                : dailyInvitesSent >= maxDailyInvites
+                                  ? `Daily limit reached (${maxDailyInvites} per day). Resets at ${resetTime}`
+                                  : ""}
                         </p>
                       </TooltipContent>
                     )}
@@ -320,15 +357,38 @@ export default function InviteFriend() {
                   {referrals.map((referral) => (
                     <div
                       key={referral.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg gap-3"
                     >
-                      <div>
+                      <div className="flex-1">
                         <p className="font-medium">{referral.referred_email}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Invited on {new Date(referral.created_at).toLocaleDateString()}
-                        </p>
+                        <div className="text-xs text-muted-foreground space-y-0.5 mt-1">
+                          <p>
+                            Sent: {new Date(referral.created_at).toLocaleDateString()} at{" "}
+                            {new Date(referral.created_at).toLocaleTimeString([], { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </p>
+                          {referral.completed_at && (
+                            <p>
+                              Completed: {new Date(referral.completed_at).toLocaleDateString()}
+                            </p>
+                          )}
+                          {referral.reward_expires_at && (
+                            <p className="text-orange-600">
+                              Reward expires: {new Date(referral.reward_expires_at).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      {getStatusBadge(referral.status)}
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(referral.status)}
+                        {referral.reward_applied && (
+                          <Badge variant="outline" className="border-green-500 text-green-600">
+                            Reward Applied
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -7,6 +7,7 @@ const corsHeaders = {
 };
 
 const MAX_LIFETIME_INVITES = 3;
+const MAX_DAILY_INVITES = 5;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -47,17 +48,36 @@ serve(async (req) => {
       );
     }
 
-    // Check lifetime invite limit
+    // Check lifetime and daily invite limits
     const { data: profile } = await supabaseClient
       .from("profiles")
-      .select("invites_sent, max_invites")
+      .select("invites_sent, max_invites, invites_sent_today, last_invite_date")
       .eq("id", user.id)
       .single();
 
+    // Check lifetime limit
     if (profile && profile.invites_sent >= profile.max_invites) {
       return new Response(
         JSON.stringify({ 
           error: `Lifetime invite limit reached (${profile.max_invites} invites total). You cannot send more invitations.` 
+        }),
+        {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Check daily limit
+    const today = new Date().toISOString().split('T')[0];
+    const isToday = profile?.last_invite_date === today;
+    const dailyCount = isToday ? (profile.invites_sent_today || 0) : 0;
+
+    if (dailyCount >= MAX_DAILY_INVITES) {
+      return new Response(
+        JSON.stringify({ 
+          error: `Daily invite limit reached (${MAX_DAILY_INVITES} per day). Try again tomorrow.`,
+          reset_at: new Date(new Date().setHours(24, 0, 0, 0)).toISOString()
         }),
         {
           status: 429,
@@ -81,19 +101,27 @@ serve(async (req) => {
       throw new Error("Failed to create referral");
     }
 
-    // Increment lifetime invite count
+    // Increment lifetime and daily invite counts
     const newInviteCount = (profile?.invites_sent || 0) + 1;
+    const newDailyCount = isToday ? dailyCount + 1 : 1;
+    
     await supabaseClient
       .from("profiles")
-      .update({ invites_sent: newInviteCount })
+      .update({ 
+        invites_sent: newInviteCount,
+        invites_sent_today: newDailyCount,
+        last_invite_date: today
+      })
       .eq("id", user.id);
 
-    console.log(`Invite sent successfully. User ${user.id} has sent ${newInviteCount} of ${profile?.max_invites || MAX_LIFETIME_INVITES} lifetime invites.`);
+    console.log(`Invite sent successfully. User ${user.id} has sent ${newInviteCount} of ${profile?.max_invites || MAX_LIFETIME_INVITES} lifetime invites, ${newDailyCount} of ${MAX_DAILY_INVITES} today.`);
 
     return new Response(
       JSON.stringify({ 
         success: true,
-        invites_remaining: (profile?.max_invites || MAX_LIFETIME_INVITES) - newInviteCount
+        invites_remaining: (profile?.max_invites || MAX_LIFETIME_INVITES) - newInviteCount,
+        daily_invites_remaining: MAX_DAILY_INVITES - newDailyCount,
+        reset_at: new Date(new Date().setHours(24, 0, 0, 0)).toISOString()
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

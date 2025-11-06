@@ -170,6 +170,8 @@ export type Database = {
           full_name: string | null
           id: string
           invites_sent: number
+          invites_sent_today: number | null
+          last_invite_date: string | null
           max_invites: number
           payment_day: number | null
           privacy_accepted_at: string | null
@@ -192,6 +194,8 @@ export type Database = {
           full_name?: string | null
           id: string
           invites_sent?: number
+          invites_sent_today?: number | null
+          last_invite_date?: string | null
           max_invites?: number
           payment_day?: number | null
           privacy_accepted_at?: string | null
@@ -214,6 +218,8 @@ export type Database = {
           full_name?: string | null
           id?: string
           invites_sent?: number
+          invites_sent_today?: number | null
+          last_invite_date?: string | null
           max_invites?: number
           payment_day?: number | null
           privacy_accepted_at?: string | null
