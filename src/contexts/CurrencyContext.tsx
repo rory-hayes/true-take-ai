@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface CurrencyContextType {
@@ -12,7 +12,7 @@ const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined
 export function CurrencyProvider({ children }: { children: ReactNode }) {
   const [currency, setCurrencyState] = useState<string>("EUR");
 
-  const refreshCurrency = async () => {
+  const refreshCurrency = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -29,15 +29,15 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Error fetching currency:", error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     refreshCurrency();
-  }, []);
+  }, [refreshCurrency]);
 
-  const setCurrency = (newCurrency: string) => {
+  const setCurrency = useCallback((newCurrency: string) => {
     setCurrencyState(newCurrency);
-  };
+  }, []);
 
   return (
     <CurrencyContext.Provider value={{ currency, setCurrency, refreshCurrency }}>
