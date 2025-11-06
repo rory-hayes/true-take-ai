@@ -92,8 +92,8 @@ const PayslipUpload = ({
     const allowedTypes = ["application/pdf", "image/png", "image/jpeg", "image/jpg"];
     if (!allowedTypes.includes(file.type)) {
       toast({
-        title: "Invalid file type",
-        description: "Please upload a PDF, PNG, or JPEG file",
+        title: "Unsupported file format",
+        description: "Please convert your file to PDF, PNG, or JPEG format and try again. Most document viewers support 'Save as PDF' or 'Export to PDF' options.",
         variant: "destructive",
       });
       return;
@@ -101,8 +101,8 @@ const PayslipUpload = ({
 
     if (file.size > 10 * 1024 * 1024) {
       toast({
-        title: "File too large",
-        description: "Please upload a file smaller than 10MB",
+        title: "File size exceeds limit",
+        description: "Your file is too large. Please compress it to under 10MB using a PDF compressor or image optimizer, then try uploading again.",
         variant: "destructive",
       });
       return;
@@ -133,6 +133,14 @@ const PayslipUpload = ({
 
       if (uploadError) {
         console.error('Upload error:', uploadError);
+        const isNetworkError = uploadError.message?.includes("fetch") || uploadError.message?.includes("network");
+        toast({
+          title: isNetworkError ? "Connection failed" : "Upload failed",
+          description: isNetworkError 
+            ? "Unable to reach the server. Please check your internet connection and try again." 
+            : "There was a problem uploading your file. Please try again or contact support if the issue persists.",
+          variant: "destructive",
+        });
         throw uploadError;
       }
 
@@ -219,9 +227,12 @@ const PayslipUpload = ({
 
     } catch (error) {
       console.error('Error uploading payslip:', error);
+      const isNetworkError = error instanceof Error && (error.message?.includes("fetch") || error.message?.includes("network") || error.message?.includes("Failed to fetch"));
       toast({
-        title: "Upload failed",
-        description: error instanceof Error ? error.message : "Please try again",
+        title: isNetworkError ? "Network error" : "Upload failed",
+        description: isNetworkError 
+          ? "Unable to complete the upload due to a connection issue. Please check your internet and try again." 
+          : error instanceof Error ? error.message : "An unexpected error occurred. Please try again or contact support.",
         variant: "destructive",
       });
     } finally {
@@ -263,10 +274,12 @@ const PayslipUpload = ({
       }}
       onDragLeave={() => setIsDragging(false)}
       onDrop={handleDrop}
+      role="region"
+      aria-label="Payslip upload area"
     >
       {!compact && (
         <>
-          <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" aria-hidden="true" />
           <p className="text-lg font-medium mb-2">Drop your payslip here</p>
           <p className="text-sm text-muted-foreground mb-4">or click to browse</p>
         </>

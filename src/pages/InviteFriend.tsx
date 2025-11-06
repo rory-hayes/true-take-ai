@@ -194,8 +194,9 @@ export default function InviteFriend() {
           variant="ghost"
           onClick={() => navigate("/dashboard")}
           className="mb-6"
+          aria-label="Back to Dashboard"
         >
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
           Back to Dashboard
         </Button>
 
@@ -248,33 +249,41 @@ export default function InviteFriend() {
               ) : (
                 <>
                   <div>
-                    <Label>Referral Code</Label>
+                    <Label htmlFor="referral-code-input">Referral Code</Label>
                     <div className="flex gap-2 mt-1">
-                      <Input value={referralCode} readOnly className="font-mono" />
+                      <Input 
+                        id="referral-code-input"
+                        value={referralCode} 
+                        readOnly 
+                        className="font-mono"
+                        aria-label="Your referral code" 
+                      />
                       <Button 
                         onClick={copyReferralCode} 
                         variant="outline"
-                        aria-label="Copy referral code"
+                        aria-label="Copy referral code to clipboard"
                       >
-                        <Copy className="h-4 w-4" />
+                        <Copy className="h-4 w-4" aria-hidden="true" />
                       </Button>
                     </div>
                   </div>
 
                   <div>
-                    <Label>Referral Link</Label>
+                    <Label htmlFor="referral-link-input">Referral Link</Label>
                     <div className="flex gap-2 mt-1">
                       <Input
+                        id="referral-link-input"
                         value={`${window.location.origin}/auth?ref=${referralCode}`}
                         readOnly
                         className="text-sm"
+                        aria-label="Your referral link"
                       />
                       <Button 
                         onClick={copyReferralLink} 
                         variant="outline"
-                        aria-label="Copy referral link"
+                        aria-label="Copy referral link to clipboard"
                       >
-                        <Copy className="h-4 w-4" />
+                        <Copy className="h-4 w-4" aria-hidden="true" />
                       </Button>
                     </div>
                   </div>
@@ -301,7 +310,10 @@ export default function InviteFriend() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="friend@example.com"
                     required
+                    aria-label="Enter friend's email address"
+                    aria-describedby="email-hint"
                   />
+                  <p id="email-hint" className="sr-only">Enter the email address of the friend you want to invite</p>
                 </div>
 
                 <TooltipProvider>
@@ -311,10 +323,11 @@ export default function InviteFriend() {
                         <Button 
                           type="submit" 
                           disabled={loading || loadingCode || !isEmailVerified || invitesSent >= maxInvites || dailyInvitesSent >= maxDailyInvites}
-                          aria-label="Send invitation email"
+                          aria-label={loading ? "Sending invitation" : "Send invitation email"}
+                          aria-busy={loading}
                           className="w-full"
                         >
-                          <Mail className="mr-2 h-4 w-4" />
+                          <Mail className="mr-2 h-4 w-4" aria-hidden="true" />
                           {loading ? "Sending..." : invitesSent >= maxInvites ? "Lifetime Limit Reached" : dailyInvitesSent >= maxDailyInvites ? "Daily Limit Reached" : "Send Invitation"}
                         </Button>
                       </span>

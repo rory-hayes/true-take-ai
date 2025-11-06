@@ -223,6 +223,9 @@ const Auth = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  aria-label="Email address"
+                  aria-describedby="email-error"
+                  autoComplete="email"
                 />
               </div>
               <div className="space-y-2">
@@ -234,6 +237,9 @@ const Auth = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  aria-label={mode === "login" ? "Password" : "Create password (minimum 6 characters)"}
+                  aria-describedby="password-error"
+                  autoComplete={mode === "login" ? "current-password" : "new-password"}
                 />
               </div>
               {mode === "signup" && (
@@ -247,6 +253,9 @@ const Auth = () => {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
+                      aria-label="Confirm your password"
+                      aria-describedby="confirm-password-error"
+                      autoComplete="new-password"
                     />
                   </div>
                   
@@ -291,6 +300,8 @@ const Auth = () => {
                 type="submit" 
                 className="w-full" 
                 disabled={isLoading || (mode === "signup" && (!acceptTerms || !acceptPrivacy))}
+                aria-label={isLoading ? "Processing" : mode === "login" ? "Sign in to your account" : "Create your account"}
+                aria-busy={isLoading}
               >
                 {isLoading ? "Loading..." : mode === "login" ? "Sign In" : "Create Account"}
               </Button>

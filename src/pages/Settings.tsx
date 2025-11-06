@@ -179,8 +179,9 @@ export default function Settings() {
           variant="ghost"
           onClick={() => navigate("/dashboard")}
           className="mb-6"
+          aria-label="Back to Dashboard"
         >
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
           Back to Dashboard
         </Button>
 
@@ -203,7 +204,7 @@ export default function Settings() {
               <div>
                 <Label htmlFor="currency">Currency</Label>
                 <Select value={currency} onValueChange={setCurrency}>
-                  <SelectTrigger id="currency">
+                  <SelectTrigger id="currency" aria-label="Select preferred currency">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -219,7 +220,7 @@ export default function Settings() {
               <div>
                 <Label htmlFor="country">Country</Label>
                 <Select value={country} onValueChange={setCountry}>
-                  <SelectTrigger id="country">
+                  <SelectTrigger id="country" aria-label="Select your country">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -250,15 +251,22 @@ export default function Settings() {
                 max="120"
                 value={dataRetention}
                 onChange={(e) => setDataRetention(e.target.value)}
+                aria-label="Data retention period in months"
+                aria-describedby="retention-hint"
               />
-              <p className="text-sm text-muted-foreground mt-2">
+              <p id="retention-hint" className="text-sm text-muted-foreground mt-2">
                 Data older than this period will be automatically deleted
               </p>
             </CardContent>
           </Card>
 
           <div className="flex justify-end">
-            <Button onClick={handleSaveSettings} disabled={loading}>
+            <Button 
+              onClick={handleSaveSettings} 
+              disabled={loading}
+              aria-label={loading ? "Saving settings" : "Save settings"}
+              aria-busy={loading}
+            >
               {loading ? "Saving..." : "Save Settings"}
             </Button>
           </div>
@@ -274,8 +282,13 @@ export default function Settings() {
               <div>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground" disabled={loading}>
-                      <Trash2 className="mr-2 h-4 w-4" />
+                    <Button 
+                      variant="outline" 
+                      className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground" 
+                      disabled={loading}
+                      aria-label="Delete all payslip data"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
                       Delete Payslip Data
                     </Button>
                   </AlertDialogTrigger>
@@ -306,8 +319,12 @@ export default function Settings() {
               <div>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="destructive" disabled={loading}>
-                      <Trash2 className="mr-2 h-4 w-4" />
+                    <Button 
+                      variant="destructive" 
+                      disabled={loading}
+                      aria-label="Delete account permanently"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
                       Delete Account
                     </Button>
                   </AlertDialogTrigger>
