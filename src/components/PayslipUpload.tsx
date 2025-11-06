@@ -273,12 +273,28 @@ const PayslipUpload = ({
       )}
       
       {subscriptionTier === "free" && (
-        <div className="mb-3 text-sm">
-          <span className={uploadsRemaining <= 1 ? "font-semibold text-orange-600" : "text-muted-foreground"}>
-            {uploadsRemaining > 0 
-              ? `${uploadsRemaining} upload${uploadsRemaining !== 1 ? 's' : ''} remaining on your free plan`
-              : "Upload limit reached"}
-          </span>
+        <div className="mb-4">
+          {uploadsRemaining > 0 ? (
+            <p className={`text-sm ${uploadsRemaining <= 1 ? "font-semibold text-orange-600" : "text-muted-foreground"}`}>
+              {uploadsRemaining} upload{uploadsRemaining !== 1 ? 's' : ''} remaining on your free plan
+            </p>
+          ) : (
+            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4">
+              <p className="text-sm font-semibold text-destructive mb-2">
+                You've reached your upload limit
+              </p>
+              <p className="text-xs text-muted-foreground mb-3">
+                Upgrade to a paid plan for unlimited uploads and premium features
+              </p>
+              <Button
+                size="sm"
+                onClick={() => navigate("/pricing")}
+                className="w-full"
+              >
+                View Plans & Upgrade
+              </Button>
+            </div>
+          )}
         </div>
       )}
       
