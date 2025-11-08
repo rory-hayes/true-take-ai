@@ -20,10 +20,13 @@ export default function Settings() {
   const { refreshCurrency, currency: globalCurrency } = useCurrency();
   const [loading, setLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
   const [currency, setCurrency] = useState("EUR");
   const [country, setCountry] = useState("IE");
   const [dataRetention, setDataRetention] = useState("24");
   const [userId, setUserId] = useState("");
+  const [subscriptionTier, setSubscriptionTier] = useState("free");
+  const [subscriptionStatus, setSubscriptionStatus] = useState("inactive");
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -37,7 +40,7 @@ export default function Settings() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("currency, country, data_retention_months")
+        .select("currency, country, data_retention_months, subscription_tier, subscription_status")
         .eq("id", user.id)
         .maybeSingle();
 
@@ -45,11 +48,43 @@ export default function Settings() {
         setCurrency(profile.currency || "EUR");
         setCountry(profile.country || "IE");
         setDataRetention((profile.data_retention_months || 24).toString());
+        setSubscriptionTier(profile.subscription_tier || "free");
+        setSubscriptionStatus(profile.subscription_status || "inactive");
       }
     };
 
     loadSettings();
   }, [navigate]);
+
+  const handleCheckSubscription = async () => {
+    setSubscriptionLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('check-subscription');
+      
+      if (error) {
+        console.error('Error checking subscription:', error);
+        toast.error("Failed to check subscription. Please try again.");
+        return;
+      }
+
+      console.log('Subscription check result:', data);
+      
+      if (data.subscribed) {
+        setSubscriptionTier(data.subscription_tier);
+        setSubscriptionStatus('active');
+        toast.success(`Subscription verified! You're on the ${data.subscription_tier} plan.`);
+      } else {
+        setSubscriptionTier('free');
+        setSubscriptionStatus('inactive');
+        toast.info("No active subscription found.");
+      }
+    } catch (error) {
+      console.error('Error in handleCheckSubscription:', error);
+      toast.error("Failed to check subscription. Please try again.");
+    } finally {
+      setSubscriptionLoading(false);
+    }
+  };
 
   const handleSaveSettings = async () => {
     setLoading(true);
@@ -295,6 +330,47 @@ export default function Settings() {
                   </SelectContent>
                 </Select>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Subscription Status</CardTitle>
+              <CardDescription>
+                View and manage your subscription
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-accent/50 rounded-lg">
+                <div>
+                  <p className="font-semibold text-lg capitalize">{subscriptionTier} Plan</p>
+                  <p className="text-sm text-muted-foreground">
+                    Status: <span className={subscriptionStatus === 'active' ? 'text-green-600' : 'text-muted-foreground'}>
+                      {subscriptionStatus}
+                    </span>
+                  </p>
+                </div>
+                <Button
+                  onClick={handleCheckSubscription}
+                  disabled={subscriptionLoading}
+                  variant="outline"
+                  aria-label="Refresh subscription status"
+                >
+                  {subscriptionLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Checking...
+                    </>
+                  ) : (
+                    "Refresh Status"
+                  )}
+                </Button>
+              </div>
+              {subscriptionTier === 'free' && (
+                <div className="text-sm text-muted-foreground">
+                  <p>Want unlimited uploads? <a href="/pricing" className="text-primary underline">Upgrade now</a></p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
