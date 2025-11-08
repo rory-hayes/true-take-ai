@@ -69,15 +69,23 @@ const Dashboard = () => {
   const checkSubscriptionStatus = async () => {
     try {
       console.log('Checking subscription status...');
+      
+      // Add a small delay to ensure Stripe has processed the subscription
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
       const { data, error } = await supabase.functions.invoke('check-subscription');
       
       if (error) {
         console.error('Error checking subscription:', error);
         toast({
-          title: "Subscription check failed",
-          description: "Please refresh the page to update your subscription status",
-          variant: "destructive",
+          title: "Checking subscription...",
+          description: "This may take a few moments. Refreshing your data...",
         });
+        
+        // Try refreshing data anyway
+        if (user) {
+          await fetchPayslipData(user.id);
+        }
         return;
       }
 
@@ -91,13 +99,25 @@ const Dashboard = () => {
         
         // Refresh the page data to reflect new subscription
         if (user) {
-          fetchPayslipData(user.id);
+          await fetchPayslipData(user.id);
         }
       } else {
         toast({
-          title: "Subscription not found",
-          description: "Your payment may still be processing. Please check back in a few minutes.",
+          title: "Processing payment...",
+          description: "Your payment is being processed. Your subscription will be active shortly.",
         });
+        
+        // Retry after a few seconds
+        setTimeout(async () => {
+          const { data: retryData } = await supabase.functions.invoke('check-subscription');
+          if (retryData?.subscribed && user) {
+            await fetchPayslipData(user.id);
+            toast({
+              title: "Subscription activated!",
+              description: "Your account has been upgraded successfully.",
+            });
+          }
+        }, 5000);
       }
     } catch (error) {
       console.error('Error in checkSubscriptionStatus:', error);
