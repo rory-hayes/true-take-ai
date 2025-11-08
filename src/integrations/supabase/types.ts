@@ -166,6 +166,7 @@ export type Database = {
           created_at: string
           currency: string | null
           data_retention_months: number | null
+          date_of_birth: string | null
           email: string
           full_name: string | null
           id: string
@@ -190,6 +191,7 @@ export type Database = {
           created_at?: string
           currency?: string | null
           data_retention_months?: number | null
+          date_of_birth?: string | null
           email: string
           full_name?: string | null
           id: string
@@ -214,6 +216,7 @@ export type Database = {
           created_at?: string
           currency?: string | null
           data_retention_months?: number | null
+          date_of_birth?: string | null
           email?: string
           full_name?: string | null
           id?: string

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Upload, TrendingUp, DollarSign, AlertCircle } from "lucide-react";
+import { FileText, Upload, TrendingUp, DollarSign, AlertCircle, Plus } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import FloatingChatButton from "@/components/FloatingChatButton";
 import { formatCurrency } from "@/lib/currencyUtils";
@@ -14,6 +14,7 @@ import PayslipChart from "@/components/PayslipChart";
 import { UserMenu } from "@/components/UserMenu";
 import { EmailVerificationBanner } from "@/components/EmailVerificationBanner";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { PensionInsightsCard } from "@/components/PensionInsightsCard";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -28,9 +29,12 @@ const Dashboard = () => {
     latestGrossPay: null as number | null,
     trend: null as string | null,
   });
-  const [selectedDialog, setSelectedDialog] = useState<'uploads' | 'latest' | 'trend' | null>(null);
+  const [selectedDialog, setSelectedDialog] = useState<'uploads' | 'latest' | 'trend' | 'pension' | 'upload' | null>(null);
   const [subscriptionTier, setSubscriptionTier] = useState<string>("free");
   const [uploadsRemaining, setUploadsRemaining] = useState<number>(3);
+  const [userAge, setUserAge] = useState<number | null>(null);
+  const [grossAnnualIncome, setGrossAnnualIncome] = useState<number>(0);
+  const [currentPensionContrib, setCurrentPensionContrib] = useState<number>(0);
 
   useEffect(() => {
     // Check authentication
@@ -126,10 +130,10 @@ const Dashboard = () => {
 
   const fetchPayslipData = async (userId: string) => {
     try {
-      // Fetch user profile for subscription tier and uploads remaining
+      // Fetch user profile for subscription tier, uploads remaining, and date of birth
       const { data: profile } = await supabase
         .from('profiles')
-        .select('subscription_tier, uploads_remaining')
+        .select('subscription_tier, uploads_remaining, date_of_birth')
         .eq('id', userId)
         .single();
 
@@ -138,6 +142,14 @@ const Dashboard = () => {
       }
       if (profile?.uploads_remaining !== undefined) {
         setUploadsRemaining(profile.uploads_remaining);
+      }
+      if (profile?.date_of_birth) {
+        const birthDate = new Date(profile.date_of_birth);
+        const today = new Date();
+        const age = today.getFullYear() - birthDate.getFullYear() - 
+          (today.getMonth() < birthDate.getMonth() || 
+           (today.getMonth() === birthDate.getMonth() && today.getDate() < birthDate.getDate()) ? 1 : 0);
+        setUserAge(age);
       }
 
       // Fetch confirmed payslip data
@@ -152,7 +164,7 @@ const Dashboard = () => {
 
       setPayslipData(data || []);
 
-      // Calculate stats
+      // Calculate stats and pension data
       if (data && data.length > 0) {
         const latest = data[0];
         const totalUploads = data.length;
@@ -168,6 +180,15 @@ const Dashboard = () => {
         }
 
         setStats({ totalUploads, latestGrossPay, trend });
+
+        // Calculate annual income from latest gross pay (multiply by 12)
+        if (latestGrossPay) {
+          setGrossAnnualIncome(latestGrossPay * 12);
+        }
+
+        // Calculate annual pension contribution (multiply by 12)
+        const latestPension = latest.pension || 0;
+        setCurrentPensionContrib(latestPension * 12);
       }
     } catch (error) {
       console.error('Error fetching payslip data:', error);
@@ -212,7 +233,18 @@ const Dashboard = () => {
               Tally
             </span>
           </div>
-          <UserMenu userEmail={user?.email || ""} isEmailVerified={isEmailVerified} />
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={() => setSelectedDialog('upload')}
+              disabled={!isEmailVerified || (subscriptionTier === "free" && uploadsRemaining === 0)}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Upload Payslip
+            </Button>
+            <UserMenu userEmail={user?.email || ""} isEmailVerified={isEmailVerified} />
+          </div>
         </div>
       </header>
 
@@ -293,14 +325,12 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Quick Upload</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <PayslipUpload compact isEmailVerified={isEmailVerified} subscriptionTier={subscriptionTier} uploadsRemaining={uploadsRemaining} />
-            </CardContent>
-          </Card>
+          <PensionInsightsCard
+            age={userAge}
+            grossAnnualIncome={grossAnnualIncome}
+            currentPensionContribAnnual={currentPensionContrib}
+            onClick={() => setSelectedDialog('pension')}
+          />
         </div>
 
         {/* Content Grid */}
@@ -481,6 +511,91 @@ const Dashboard = () => {
                 </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={selectedDialog === 'pension'} onOpenChange={() => setSelectedDialog(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Pension Contribution Breakdown</DialogTitle>
+              <DialogDescription>
+                Detailed analysis of your pension contributions and tax efficiency
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 border rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Your Age</p>
+                  <p className="text-2xl font-bold">{userAge || "Not set"}</p>
+                  {!userAge && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Add your date of birth in settings
+                    </p>
+                  )}
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Gross Annual Income</p>
+                  <p className="text-2xl font-bold">{formatCurrency(grossAnnualIncome, currency)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Based on latest payslip
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 bg-primary/10 rounded-lg">
+                <p className="text-sm text-muted-foreground mb-2">Current Monthly Contribution</p>
+                <p className="text-3xl font-bold text-primary">
+                  {formatCurrency(currentPensionContrib / 12, currency)}
+                </p>
+              </div>
+
+              <div className="p-4 border rounded-lg">
+                <p className="text-sm text-muted-foreground mb-2">Recommended Monthly Contribution</p>
+                <p className="text-3xl font-bold">
+                  {formatCurrency((Math.min(grossAnnualIncome, 115000) * (userAge ? (
+                    userAge < 30 ? 0.15 :
+                    userAge < 40 ? 0.20 :
+                    userAge < 50 ? 0.25 :
+                    userAge < 55 ? 0.30 :
+                    userAge < 60 ? 0.35 : 0.40
+                  ) : 0.20)) / 12, currency)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  This is the maximum tax-efficient contribution based on Irish Revenue rules
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="font-semibold">Revenue Age-Based Limits</h4>
+                <div className="text-sm space-y-1">
+                  <p className="flex justify-between"><span>Under 30:</span> <span className="font-medium">15% of income</span></p>
+                  <p className="flex justify-between"><span>30-39:</span> <span className="font-medium">20% of income</span></p>
+                  <p className="flex justify-between"><span>40-49:</span> <span className="font-medium">25% of income</span></p>
+                  <p className="flex justify-between"><span>50-54:</span> <span className="font-medium">30% of income</span></p>
+                  <p className="flex justify-between"><span>55-59:</span> <span className="font-medium">35% of income</span></p>
+                  <p className="flex justify-between"><span>60+:</span> <span className="font-medium">40% of income</span></p>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  * Maximum qualifying income for tax relief: €115,000
+                </p>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={selectedDialog === 'upload'} onOpenChange={() => setSelectedDialog(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Upload Payslip</DialogTitle>
+              <DialogDescription>
+                Upload a new payslip to track your income
+              </DialogDescription>
+            </DialogHeader>
+            <PayslipUpload 
+              isEmailVerified={isEmailVerified} 
+              subscriptionTier={subscriptionTier} 
+              uploadsRemaining={uploadsRemaining} 
+            />
           </DialogContent>
         </Dialog>
       </main>

@@ -15,6 +15,7 @@ const signupSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
   acceptTerms: z.boolean().refine((val) => val === true, {
     message: "You must accept the Terms of Service",
   }),
@@ -42,6 +43,7 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const referralCode = searchParams.get("ref");
@@ -71,7 +73,8 @@ const Auth = () => {
       const validated = signupSchema.parse({ 
         email, 
         password, 
-        confirmPassword, 
+        confirmPassword,
+        dateOfBirth,
         acceptTerms, 
         acceptPrivacy 
       });
@@ -106,6 +109,7 @@ const Auth = () => {
             terms_accepted_at: now,
             privacy_accepted_at: now,
             signup_ip_address: ipAddress,
+            date_of_birth: validated.dateOfBirth,
           })
           .eq("id", authData.user.id);
       }
@@ -259,6 +263,19 @@ const Auth = () => {
                     />
                   </div>
                   
+                  <div className="space-y-2">
+                    <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                    <Input
+                      id="dateOfBirth"
+                      type="date"
+                      value={dateOfBirth}
+                      onChange={(e) => setDateOfBirth(e.target.value)}
+                      required
+                      max={new Date().toISOString().split('T')[0]}
+                      aria-label="Date of birth for pension calculations"
+                    />
+                  </div>
+                  
                   <div className="space-y-3 pt-2">
                     <div className="flex items-start gap-2">
                       <Checkbox
@@ -320,6 +337,7 @@ const Auth = () => {
                   setEmail("");
                   setPassword("");
                   setConfirmPassword("");
+                  setDateOfBirth("");
                   setAcceptTerms(false);
                   setAcceptPrivacy(false);
                 }}
