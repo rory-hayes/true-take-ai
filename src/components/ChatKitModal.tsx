@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   role: "user" | "assistant";
@@ -22,7 +23,7 @@ export function ChatKitModal({ open, onOpenChange }: ChatKitModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+  const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-openai`;
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -34,11 +35,20 @@ export function ChatKitModal({ open, onOpenChange }: ChatKitModalProps) {
     setError(null);
     
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        setError("You must be signed in to use ChatKit.");
+        setIsLoading(false);
+        return;
+      }
+
       const response = await fetch(CHAT_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          // Pass the user's JWT so the Edge Function can authorize and enforce paid plans
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ messages: [...messages, userMessage] }),
       });
