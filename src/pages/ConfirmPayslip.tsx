@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2, Pencil, Check, X } from "lucide-react";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { getCurrencySymbol } from "@/lib/currencyUtils";
 
@@ -29,6 +29,8 @@ const ConfirmPayslip = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [data, setData] = useState<PayslipData | null>(null);
+  const [isEditingAdditional, setIsEditingAdditional] = useState(false);
+  const [editedAdditionalData, setEditedAdditionalData] = useState<any>({});
   
   const currencySymbol = getCurrencySymbol(currency);
 
@@ -46,6 +48,7 @@ const ConfirmPayslip = () => {
 
       if (error) throw error;
       setData(payslipData);
+      setEditedAdditionalData(payslipData.additional_data || {});
     } catch (error) {
       console.error('Error fetching payslip data:', error);
       toast({
@@ -57,6 +60,30 @@ const ConfirmPayslip = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAdditionalDataEdit = (key: string, value: string) => {
+    setEditedAdditionalData({
+      ...editedAdditionalData,
+      [key]: value
+    });
+  };
+
+  const handleSaveAdditionalData = () => {
+    setData({
+      ...data!,
+      additional_data: editedAdditionalData
+    });
+    setIsEditingAdditional(false);
+    toast({
+      title: "Changes saved",
+      description: "Additional information updated. Don't forget to Confirm & Save.",
+    });
+  };
+
+  const handleCancelAdditionalEdit = () => {
+    setEditedAdditionalData(data?.additional_data || {});
+    setIsEditingAdditional(false);
   };
 
   const handleConfirm = async () => {
@@ -73,6 +100,7 @@ const ConfirmPayslip = () => {
           pension: data.pension,
           social_security: data.social_security,
           other_deductions: data.other_deductions,
+          additional_data: data.additional_data,
           confirmed: true,
         })
         .eq('id', id);
@@ -246,17 +274,70 @@ const ConfirmPayslip = () => {
 
               {data.additional_data && Object.keys(data.additional_data).length > 0 && (
                 <div className="pt-4 border-t">
-                  <h3 className="text-sm font-semibold mb-2">Additional Information</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                    {Object.entries(data.additional_data).map(([key, value]) => (
-                      <div key={key} className="flex justify-between">
-                        <span className="text-muted-foreground capitalize">
-                          {key.replace(/_/g, ' ')}:
-                        </span>
-                        <span className="font-medium">{String(value)}</span>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold">Additional Information</h3>
+                    {!isEditingAdditional ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsEditingAdditional(true)}
+                        className="h-8 px-2"
+                      >
+                        <Pencil className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleSaveAdditionalData}
+                          className="h-8 px-2"
+                        >
+                          <Check className="h-4 w-4 mr-1" />
+                          Save
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleCancelAdditionalEdit}
+                          className="h-8 px-2"
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Cancel
+                        </Button>
                       </div>
-                    ))}
+                    )}
                   </div>
+                  
+                  {!isEditingAdditional ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                      {Object.entries(data.additional_data).map(([key, value]) => (
+                        <div key={key} className="flex justify-between">
+                          <span className="text-muted-foreground capitalize">
+                            {key.replace(/_/g, ' ')}:
+                          </span>
+                          <span className="font-medium">{String(value)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-3">
+                      {Object.entries(editedAdditionalData).map(([key, value]) => (
+                        <div key={key} className="space-y-1">
+                          <Label htmlFor={`additional_${key}`} className="text-xs capitalize">
+                            {key.replace(/_/g, ' ')}
+                          </Label>
+                          <Input
+                            id={`additional_${key}`}
+                            value={String(value)}
+                            onChange={(e) => handleAdditionalDataEdit(key, e.target.value)}
+                            className="text-sm"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
