@@ -16,7 +16,7 @@ const COUNTRIES = ["IE", "UK", "US", "FR", "DE", "ES", "IT", "NL", "BE", "CH"];
 
 export default function Settings() {
   const navigate = useNavigate();
-  const { setCurrency: setGlobalCurrency, refreshCurrency } = useCurrency();
+  const { refreshCurrency } = useCurrency();
   const [loading, setLoading] = useState(false);
   const [currency, setCurrency] = useState("EUR");
   const [country, setCountry] = useState("IE");
@@ -51,9 +51,7 @@ export default function Settings() {
 
   const handleSaveSettings = async () => {
     setLoading(true);
-    try {
-      const previousCurrency = currency;
-      
+    try {      
       const { error } = await supabase
         .from("profiles")
         .update({
@@ -65,13 +63,9 @@ export default function Settings() {
 
       if (error) throw error;
 
-      // Update global currency context if changed
-      if (previousCurrency !== currency) {
-        setGlobalCurrency(currency);
-        toast.success(`Currency updated to ${currency}. All amounts have been updated.`);
-      } else {
-        toast.success("Settings saved successfully");
-      }
+      // Refresh currency context to ensure it's in sync
+      await refreshCurrency();
+      toast.success("Settings saved successfully. All amounts have been updated.");
     } catch (error: any) {
       toast.error(error.message || "Error saving settings");
     } finally {

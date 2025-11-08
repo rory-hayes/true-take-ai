@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface CurrencyContextType {
   currency: string;
-  setCurrency: (currency: string) => void;
+  setCurrency: (currency: string) => Promise<void>;
   refreshCurrency: () => Promise<void>;
 }
 
@@ -33,10 +33,33 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     refreshCurrency();
+
+    // Listen for auth state changes to refresh currency
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        refreshCurrency();
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [refreshCurrency]);
 
-  const setCurrency = useCallback((newCurrency: string) => {
-    setCurrencyState(newCurrency);
+  const setCurrency = useCallback(async (newCurrency: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ currency: newCurrency })
+        .eq("id", user.id);
+
+      if (error) throw error;
+      
+      setCurrencyState(newCurrency);
+    } catch (error) {
+      console.error("Error updating currency:", error);
+    }
   }, []);
 
   return (

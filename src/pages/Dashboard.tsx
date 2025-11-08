@@ -18,7 +18,7 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { currency, setCurrency } = useCurrency();
+  const { currency } = useCurrency();
   const [user, setUser] = useState<any>(null);
   const [isEmailVerified, setIsEmailVerified] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
@@ -59,16 +59,13 @@ const Dashboard = () => {
 
   const fetchPayslipData = async (userId: string) => {
     try {
-      // Fetch user profile for currency, subscription tier, and uploads remaining
+      // Fetch user profile for subscription tier and uploads remaining
       const { data: profile } = await supabase
         .from('profiles')
-        .select('currency, subscription_tier, uploads_remaining')
+        .select('subscription_tier, uploads_remaining')
         .eq('id', userId)
         .single();
 
-      if (profile?.currency) {
-        setCurrency(profile.currency);
-      }
       if (profile?.subscription_tier) {
         setSubscriptionTier(profile.subscription_tier);
       }
