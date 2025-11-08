@@ -76,33 +76,44 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     logStep("Found Stripe customer", { customerId });
 
-    // Get active subscriptions
+    // Get active subscriptions - expand to get full data
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       status: "active",
       limit: 1,
+      expand: ['data.items.data.price']
     });
 
     const hasActiveSub = subscriptions.data.length > 0;
 
     if (hasActiveSub) {
       const subscription = subscriptions.data[0];
-      const subscriptionEndDate = new Date(subscription.current_period_end * 1000).toISOString();
+      
+      // Safely get subscription end date
+      let subscriptionEndDate = null;
+      if (subscription.current_period_end) {
+        subscriptionEndDate = new Date(subscription.current_period_end * 1000).toISOString();
+      }
+      
       const priceId = subscription.items.data[0].price.id;
       
       logStep("Active subscription found", { 
         subscriptionId: subscription.id, 
         endDate: subscriptionEndDate,
-        priceId 
+        priceId,
+        currentPeriodEnd: subscription.current_period_end
       });
 
-      // Determine tier based on price ID (adjust these based on your actual Stripe price IDs)
+      // Determine tier based on price ID
+      // price_1SP32NFI6AfZKCoZWEI4zt37 is annual (€54/year)
+      // price_1SP31vFI6AfZKCoZgbwMQ8tX is monthly (€5/month)
       let tier = 'monthly';
       let uploadsRemaining = 999999;
 
-      // Update these price IDs to match your actual Stripe prices
-      if (priceId.includes('annual') || priceId.includes('yearly')) {
+      if (priceId === 'price_1SP32NFI6AfZKCoZWEI4zt37') {
         tier = 'annual';
+      } else if (priceId === 'price_1SP31vFI6AfZKCoZgbwMQ8tX') {
+        tier = 'monthly';
       }
 
       // Update database with subscription details
