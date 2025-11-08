@@ -8,10 +8,10 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 };
 
 const CURRENCY_FORMATS: Record<string, { locale: string; position: "before" | "after" }> = {
-  EUR: { locale: "de-DE", position: "after" },
+  EUR: { locale: "de-DE", position: "before" },
   USD: { locale: "en-US", position: "before" },
   GBP: { locale: "en-GB", position: "before" },
-  CHF: { locale: "de-CH", position: "after" },
+  CHF: { locale: "de-CH", position: "before" },
   AUD: { locale: "en-AU", position: "before" },
   CAD: { locale: "en-CA", position: "before" },
 };

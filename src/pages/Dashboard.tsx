@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Upload, TrendingUp, DollarSign, AlertCircle, Plus } from "lucide-react";
+import { FileText, Upload, TrendingUp, DollarSign, AlertCircle, Plus, Euro, Banknote } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import FloatingChatButton from "@/components/FloatingChatButton";
-import { formatCurrency } from "@/lib/currencyUtils";
+import { formatCurrency, getCurrencySymbol } from "@/lib/currencyUtils";
 import PayslipUpload from "@/components/PayslipUpload";
 import PayslipChart from "@/components/PayslipChart";
 import { UserMenu } from "@/components/UserMenu";
@@ -152,10 +152,13 @@ const Dashboard = () => {
         setUserAge(age);
       }
 
-      // Fetch confirmed payslip data
+      // Fetch confirmed payslip data with pay period information
       const { data, error } = await supabase
         .from('payslip_data')
-        .select('*')
+        .select(`
+          *,
+          payslips!inner(pay_period_start, pay_period_end)
+        `)
         .eq('user_id', userId)
         .eq('confirmed', true)
         .order('created_at', { ascending: false });
@@ -297,7 +300,15 @@ const Dashboard = () => {
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Latest Gross Pay</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              {currency === 'EUR' ? (
+                <Euro className="h-4 w-4 text-muted-foreground" />
+              ) : currency === 'GBP' ? (
+                <span className="text-muted-foreground font-bold">£</span>
+              ) : currency === 'USD' ? (
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <Banknote className="h-4 w-4 text-muted-foreground" />
+              )}
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
@@ -348,31 +359,38 @@ const Dashboard = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {payslipData.slice(0, 3).map((payslip) => (
-                    <div
-                      key={payslip.id}
-                      className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer"
-                      onClick={() => navigate(`/payslip/${payslip.id}`)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-8 w-8 text-primary" />
-                        <div>
-                          <p className="font-medium">
-                            {formatCurrency(payslip.gross_pay, currency)} Gross
+                  {payslipData.slice(0, 3).map((payslip) => {
+                    const payPeriodEnd = payslip.payslips?.pay_period_end;
+                    const displayDate = payPeriodEnd 
+                      ? new Date(payPeriodEnd).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+                      : new Date(payslip.created_at).toLocaleDateString();
+                    
+                    return (
+                      <div
+                        key={payslip.id}
+                        className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer"
+                        onClick={() => navigate(`/payslip/${payslip.id}`)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <FileText className="h-8 w-8 text-primary" />
+                          <div>
+                            <p className="font-medium">
+                              {formatCurrency(payslip.gross_pay, currency)} Gross
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {displayDate}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-green-600">
+                            {formatCurrency(payslip.net_pay, currency)}
                           </p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(payslip.created_at).toLocaleDateString()}
-                          </p>
+                          <p className="text-xs text-muted-foreground">Net Pay</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-green-600">
-                          {formatCurrency(payslip.net_pay, currency)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Net Pay</p>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
