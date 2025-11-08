@@ -24,6 +24,7 @@ export default function Settings() {
   const [currency, setCurrency] = useState("EUR");
   const [country, setCountry] = useState("IE");
   const [dataRetention, setDataRetention] = useState("24");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [userId, setUserId] = useState("");
   const [subscriptionTier, setSubscriptionTier] = useState("free");
   const [subscriptionStatus, setSubscriptionStatus] = useState("inactive");
@@ -40,7 +41,7 @@ export default function Settings() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("currency, country, data_retention_months, subscription_tier, subscription_status")
+        .select("currency, country, data_retention_months, date_of_birth, subscription_tier, subscription_status")
         .eq("id", user.id)
         .maybeSingle();
 
@@ -48,6 +49,7 @@ export default function Settings() {
         setCurrency(profile.currency || "EUR");
         setCountry(profile.country || "IE");
         setDataRetention((profile.data_retention_months || 24).toString());
+        setDateOfBirth(profile.date_of_birth || "");
         setSubscriptionTier(profile.subscription_tier || "free");
         setSubscriptionStatus(profile.subscription_status || "inactive");
       }
@@ -95,6 +97,7 @@ export default function Settings() {
           currency,
           country,
           data_retention_months: parseInt(dataRetention),
+          date_of_birth: dateOfBirth || null,
         })
         .eq("id", userId);
 
@@ -329,6 +332,21 @@ export default function Settings() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                <Input
+                  id="dateOfBirth"
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  aria-label="Your date of birth"
+                  aria-describedby="dob-hint"
+                />
+                <p id="dob-hint" className="text-sm text-muted-foreground mt-2">
+                  Required for accurate pension contribution calculations
+                </p>
               </div>
             </CardContent>
           </Card>
