@@ -3,6 +3,11 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { getDocument } from 'https://esm.sh/pdfjs-serverless@0.3.2';
 import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+// Lightweight image processing in Deno for pre-processing before OCR
+import { Image } from "https://deno.land/x/imagescript@1.2.16/mod.ts";
+// Tesseract.js (WASM) for robust on-edge OCR for image uploads
+// We pull via esm.sh; configure worker/core/lang paths to public CDNs
+import Tesseract from "https://esm.sh/tesseract.js@5.0.5";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -51,6 +56,63 @@ function validatePayslipData(data: any): { isValid: boolean; errors: string[] } 
     isValid: errors.length === 0,
     errors
   };
+}
+
+// Helper: Determine file extension (lowercased) from file path or name
+function getFileExtension(filePathOrName: string | undefined): string {
+  if (!filePathOrName) return "";
+  const lastDot = filePathOrName.lastIndexOf(".");
+  if (lastDot === -1) return "";
+  return filePathOrName.slice(lastDot + 1).toLowerCase();
+}
+
+// Helper: Is this an image file we can feed directly to Tesseract?
+function isImageExtension(ext: string): boolean {
+  return ["png", "jpg", "jpeg"].includes(ext);
+}
+
+// Basic pre-processing for OCR: grayscale + gentle contrast + size normalization
+async function preprocessImageForOcr(imageBytes: ArrayBuffer): Promise<Uint8Array> {
+  const img = await Image.decode(new Uint8Array(imageBytes));
+  // Normalize size to improve OCR accuracy (target width up to 2000px)
+  const targetMaxWidth = 2000;
+  if (img.width > targetMaxWidth) {
+    const scale = targetMaxWidth / img.width;
+    const newW = Math.round(img.width * scale);
+    const newH = Math.round(img.height * scale);
+    img.resize(newW, newH);
+  }
+  img.grayscale();
+  // Increase contrast moderately; range is -100..100
+  img.brightnessContrast(0, 30);
+  // Return as PNG (lossless) for OCR
+  return await img.encodePNG();
+}
+
+// Tesseract OCR for images (PNG/JPEG)
+async function ocrWithTesseract(imageBytes: ArrayBuffer): Promise<string> {
+  // Preprocess for better OCR accuracy
+  const preprocessed = await preprocessImageForOcr(imageBytes);
+  // Configure paths for Tesseract.js in an edge/Deno environment
+  // Use CDN paths compatible with tesseract.js v5
+  const worker = await (Tesseract as any).createWorker({
+    logger: (_m: any) => {}, // silence logs in production; can route to console.debug if needed
+    workerPath: "https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/worker.min.js",
+    corePath: "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.0.0/tesseract-core.wasm.js",
+    langPath: "https://tessdata.projectnaptha.com/4.0.0",
+    // Some edge environments require disabling blob URLs
+    workerBlobURL: false,
+  });
+
+  try {
+    await worker.loadLanguage("eng");
+    await worker.initialize("eng");
+    const { data } = await worker.recognize(preprocessed);
+    const text: string = (data && data.text) ? data.text : "";
+    return text.trim();
+  } finally {
+    await worker.terminate();
+  }
 }
 
 serve(async (req) => {
@@ -112,38 +174,53 @@ serve(async (req) => {
 
     console.log('Fetching PDF from storage...');
 
-    // Download the PDF file
-    const pdfResponse = await fetch(urlData.signedUrl);
-    if (!pdfResponse.ok) {
-      throw new Error(`Failed to download PDF: ${pdfResponse.status}`);
+    // Download the file (PDF or image)
+    const fileResponse = await fetch(urlData.signedUrl);
+    if (!fileResponse.ok) {
+      throw new Error(`Failed to download file: ${fileResponse.status}`);
     }
-    const pdfBytes = await pdfResponse.arrayBuffer();
-    console.log(`PDF downloaded, size: ${pdfBytes.byteLength} bytes`);
+    const fileBytes = await fileResponse.arrayBuffer();
+    console.log(`File downloaded, size: ${fileBytes.byteLength} bytes`);
 
-    // TIER 1: Try to extract text layer from PDF first (fastest, no AI needed)
+    // Determine file type by extension
+    const fileExt = getFileExtension(payslip.file_name || payslip.file_path);
+
+    // TIER 0 (new): If this is an image (PNG/JPG), run robust OCR with Tesseract
     let extractedText = '';
-    try {
-      console.log('Attempting to extract text layer from PDF...');
-      const pdf = await getDocument(new Uint8Array(pdfBytes)).promise;
-      const numPages = pdf.numPages;
-      console.log(`PDF has ${numPages} pages`);
-      
-      for (let i = 1; i <= numPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items.map((item: any) => item.str).join(' ');
-        extractedText += pageText + '\n';
-      }
-      
-      extractedText = extractedText.trim();
-      console.log(`Extracted text length: ${extractedText.length} characters`);
-      
-      if (extractedText.length < 100) {
-        console.log('Text layer too short, likely a scanned document');
+    if (isImageExtension(fileExt)) {
+      try {
+        console.log('Running Tesseract OCR on image...');
+        extractedText = await ocrWithTesseract(fileBytes);
+        console.log(`Tesseract extracted ${extractedText.length} characters`);
+      } catch (imageOcrError) {
+        console.warn('Tesseract OCR failed for image; falling back:', imageOcrError);
         extractedText = '';
       }
-    } catch (textError) {
-      console.log('Text extraction failed, will use OCR:', textError);
+    } else {
+      // Original path: assume PDF; try to extract text layer first (fastest)
+      try {
+        console.log('Attempting to extract text layer from PDF...');
+        const pdf = await getDocument(new Uint8Array(fileBytes)).promise;
+        const numPages = pdf.numPages;
+        console.log(`PDF has ${numPages} pages`);
+        
+        for (let i = 1; i <= numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map((item: any) => item.str).join(' ');
+          extractedText += pageText + '\n';
+        }
+        
+        extractedText = extractedText.trim();
+        console.log(`Extracted text length: ${extractedText.length} characters`);
+        
+        if (extractedText.length < 100) {
+          console.log('Text layer too short, likely a scanned document');
+          extractedText = '';
+        }
+      } catch (textError) {
+        console.log('Text extraction failed, will use OCR fallback:', textError);
+      }
     }
 
     let aiResponse: any;
@@ -210,7 +287,7 @@ IMPORTANT:
       
       try {
         // Encode PDF as base64 for vision API
-        const base64Pdf = base64Encode(pdfBytes);
+        const base64Pdf = base64Encode(fileBytes);
         console.log(`Encoded PDF: ${base64Pdf.length} chars`);
         
         // Call Lovable AI vision model with PDF
