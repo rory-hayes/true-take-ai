@@ -3,17 +3,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useNavigate } from "react-router-dom";
 import { FileText, TrendingUp, Shield, Sparkles, Upload, Search, CheckCircle, Lock, Globe, Database, Eye, MessageSquare } from "lucide-react";
-
 const Landing = () => {
   const navigate = useNavigate();
-
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
-    element?.scrollIntoView({ behavior: "smooth" });
+    element?.scrollIntoView({
+      behavior: "smooth"
+    });
   };
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -133,9 +131,7 @@ const Landing = () => {
               </CardContent>
             </Card>
           </div>
-          <p className="text-center text-sm text-muted-foreground mt-8">
-            No data leaves the EU. All PII is redacted before analysis.
-          </p>
+          
         </div>
       </section>
 
@@ -532,8 +528,6 @@ const Landing = () => {
           </div>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default Landing;
