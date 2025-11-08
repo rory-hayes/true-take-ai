@@ -3,8 +3,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { getDocument } from 'https://esm.sh/pdfjs-serverless@0.3.2';
 import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
-// Lightweight image processing in Deno for pre-processing before OCR
-import { Image } from "https://deno.land/x/imagescript@1.2.16/mod.ts";
 // Tesseract.js (WASM) for robust on-edge OCR for image uploads
 // We pull via esm.sh; configure worker/core/lang paths to public CDNs
 import Tesseract from "https://esm.sh/tesseract.js@5.0.5";
@@ -71,28 +69,8 @@ function isImageExtension(ext: string): boolean {
   return ["png", "jpg", "jpeg"].includes(ext);
 }
 
-// Basic pre-processing for OCR: grayscale + gentle contrast + size normalization
-async function preprocessImageForOcr(imageBytes: ArrayBuffer): Promise<Uint8Array> {
-  const img = await Image.decode(new Uint8Array(imageBytes));
-  // Normalize size to improve OCR accuracy (target width up to 2000px)
-  const targetMaxWidth = 2000;
-  if (img.width > targetMaxWidth) {
-    const scale = targetMaxWidth / img.width;
-    const newW = Math.round(img.width * scale);
-    const newH = Math.round(img.height * scale);
-    img.resize(newW, newH);
-  }
-  img.grayscale();
-  // Increase contrast moderately; range is -100..100
-  img.brightnessContrast(0, 30);
-  // Return as PNG (lossless) for OCR
-  return await img.encodePNG();
-}
-
 // Tesseract OCR for images (PNG/JPEG)
 async function ocrWithTesseract(imageBytes: ArrayBuffer): Promise<string> {
-  // Preprocess for better OCR accuracy
-  const preprocessed = await preprocessImageForOcr(imageBytes);
   // Configure paths for Tesseract.js in an edge/Deno environment
   // Use CDN paths compatible with tesseract.js v5
   const worker = await (Tesseract as any).createWorker({
@@ -107,7 +85,7 @@ async function ocrWithTesseract(imageBytes: ArrayBuffer): Promise<string> {
   try {
     await worker.loadLanguage("eng");
     await worker.initialize("eng");
-    const { data } = await worker.recognize(preprocessed);
+    const { data } = await worker.recognize(new Uint8Array(imageBytes));
     const text: string = (data && data.text) ? data.text : "";
     return text.trim();
   } finally {
