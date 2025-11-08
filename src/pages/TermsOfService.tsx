@@ -25,28 +25,28 @@ export default function TermsOfService() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Tax Man Terms of Service</CardTitle>
+            <CardTitle>Tally Terms of Service</CardTitle>
             <p className="text-sm text-muted-foreground">Last updated: {new Date().toLocaleDateString()}</p>
           </CardHeader>
           <CardContent className="space-y-6 prose prose-sm dark:prose-invert max-w-none">
             <section>
               <h2 className="text-xl font-semibold mb-3">1. Acceptance of Terms</h2>
               <p>
-                By accessing and using Tax Man, you accept and agree to be bound by the terms and provision of this agreement.
+                By accessing and using Tally, you accept and agree to be bound by the terms and provision of this agreement.
               </p>
             </section>
 
             <section>
               <h2 className="text-xl font-semibold mb-3">2. Use License</h2>
               <p>
-                Permission is granted to temporarily access Tax Man for personal, non-commercial use only. This is the grant of a license, not a transfer of title.
+                Permission is granted to temporarily access Tally for personal, non-commercial use only. This is the grant of a license, not a transfer of title.
               </p>
             </section>
 
             <section>
               <h2 className="text-xl font-semibold mb-3">3. Service Description</h2>
               <p>
-                Tax Man provides payslip management and analysis services. We offer AI-powered insights to help you understand your income and tax information.
+                Tally provides payslip management and analysis services. We offer AI-powered insights to help you understand your income and tax information.
               </p>
             </section>
 
@@ -77,7 +77,7 @@ export default function TermsOfService() {
             <section>
               <h2 className="text-xl font-semibold mb-3">7. Limitation of Liability</h2>
               <p>
-                Tax Man is provided "as is" without warranties of any kind. We are not liable for any damages arising from the use of our service.
+                Tally is provided "as is" without warranties of any kind. We are not liable for any damages arising from the use of our service.
               </p>
             </section>
 

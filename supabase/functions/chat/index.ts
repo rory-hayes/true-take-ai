@@ -29,7 +29,7 @@ serve(async (req) => {
         messages: [
           { 
             role: "system", 
-            content: "You are a helpful AI assistant for Tax Man, a payslip management application. You help users understand their payslip data, tax deductions, and financial insights. Keep answers clear, concise, and friendly." 
+            content: "You are a helpful AI assistant for Tally, a payslip management application. You help users understand their payslip data, tax deductions, and financial insights. Keep answers clear, concise, and friendly." 
           },
           ...messages,
         ],

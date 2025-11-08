@@ -25,7 +25,7 @@ export default function PrivacyPolicy() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Tax Man Privacy Policy</CardTitle>
+            <CardTitle>Tally Privacy Policy</CardTitle>
             <p className="text-sm text-muted-foreground">Last updated: {new Date().toLocaleDateString()}</p>
           </CardHeader>
           <CardContent className="space-y-6 prose prose-sm dark:prose-invert max-w-none">

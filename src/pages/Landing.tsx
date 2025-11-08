@@ -18,7 +18,7 @@ const Landing = () => {
           <div className="flex items-center gap-2">
             <FileText className="h-8 w-8 text-primary" />
             <span className="text-2xl font-bold bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--accent))] bg-clip-text text-transparent">
-              Tax Man
+              Tally
             </span>
           </div>
           <nav className="hidden md:flex items-center gap-6">
@@ -56,7 +56,7 @@ const Landing = () => {
             Understand your payslip. Catch mistakes. Gain clarity.
           </p>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Tax Man analyzes each payslip instantly—explaining your pay, taxes, and deductions in human language. Keep every payslip consistent and catch issues before they cost you money.
+            Tally analyzes each payslip instantly—explaining your pay, taxes, and deductions in human language. Keep every payslip consistent and catch issues before they cost you money.
           </p>
           <div className="flex flex-col gap-3 max-w-md mx-auto text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
@@ -139,7 +139,7 @@ const Landing = () => {
       <section id="benefits" className="container mx-auto px-4 py-20">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Why Tax Man?</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Why Tally?</h2>
             <p className="text-xl text-muted-foreground">AI that works for you, not against you</p>
           </div>
           <div className="grid md:grid-cols-2 gap-8">
@@ -210,7 +210,7 @@ const Landing = () => {
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Security & Transparency</h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Your payslip contains sensitive personal data. We built Tax Man with privacy as the default so you always know how information is handled.
+              Your payslip contains sensitive personal data. We built Tally with privacy as the default so you always know how information is handled.
             </p>
           </div>
           <div className="grid md:grid-cols-2 gap-6 mb-12">
@@ -248,7 +248,7 @@ const Landing = () => {
           <div className="bg-card rounded-lg p-8 border border-border">
             <h3 className="text-2xl font-bold mb-6 text-center">Security Snapshot</h3>
             <p className="text-muted-foreground text-center mb-8">
-              Key facts about how Tax Man handles your documents
+              Key facts about how Tally handles your documents
             </p>
             <div className="grid md:grid-cols-4 gap-6">
               <div className="text-center">
@@ -290,14 +290,14 @@ const Landing = () => {
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Customer Stories</h2>
             <p className="text-xl text-muted-foreground">
-              Real results from people and teams who rely on Tax Man
+              Real results from people and teams who rely on Tally
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             <Card>
               <CardHeader>
                 <CardDescription className="text-base italic mb-4">
-                  "Tax Man spotted an emergency tax code on my first upload. It paid for itself in one payday."
+                  "Tally spotted an emergency tax code on my first upload. It paid for itself in one payday."
                 </CardDescription>
                 <div>
                   <CardTitle className="text-lg">Aoife M.</CardTitle>
@@ -466,7 +466,7 @@ const Landing = () => {
             <AccordionItem value="item-6">
               <AccordionTrigger className="text-left">What makes this better than reading my payslip manually?</AccordionTrigger>
               <AccordionContent>
-                Tax Man translates payroll jargon into plain language, automatically spots errors by comparing payslips over time, and generates year-end summaries in seconds—saving you time and catching mistakes that cost money.
+                Tally translates payroll jargon into plain language, automatically spots errors by comparing payslips over time, and generates year-end summaries in seconds—saving you time and catching mistakes that cost money.
               </AccordionContent>
             </AccordionItem>
           </Accordion>
@@ -497,7 +497,7 @@ const Landing = () => {
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <FileText className="h-6 w-6 text-primary" />
-                <span className="text-xl font-bold">Tax Man</span>
+                <span className="text-xl font-bold">Tally</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 AI-powered payslip analysis for everyone. Built and hosted in the EU.
@@ -523,7 +523,7 @@ const Landing = () => {
           </div>
           <div className="border-t border-border pt-8">
             <p className="text-center text-sm text-muted-foreground">
-              &copy; 2025 Tax Man. All rights reserved.
+              &copy; 2025 Tally. All rights reserved.
             </p>
           </div>
         </div>
