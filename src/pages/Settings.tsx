@@ -8,16 +8,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2, Download, Loader2 } from "lucide-react";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { formatCurrency } from "@/lib/currencyUtils";
 
 const CURRENCIES = ["EUR", "USD", "GBP", "CHF", "AUD", "CAD"];
 const COUNTRIES = ["IE", "UK", "US", "FR", "DE", "ES", "IT", "NL", "BE", "CH"];
 
 export default function Settings() {
   const navigate = useNavigate();
-  const { refreshCurrency } = useCurrency();
+  const { refreshCurrency, currency: globalCurrency } = useCurrency();
   const [loading, setLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const [currency, setCurrency] = useState("EUR");
   const [country, setCountry] = useState("IE");
   const [dataRetention, setDataRetention] = useState("24");
@@ -116,6 +118,73 @@ export default function Settings() {
       toast.error(error.message || "Error deleting data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExportData = async () => {
+    setExportLoading(true);
+    try {
+      // Fetch all payslip data
+      const { data: payslipData, error: dataError } = await supabase
+        .from("payslip_data")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (dataError) throw dataError;
+
+      // Fetch profile data
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("email, full_name, currency, country, subscription_tier, created_at")
+        .eq("id", userId)
+        .single();
+
+      if (profileError) throw profileError;
+
+      // Format data for export
+      const exportData = {
+        profile: {
+          email: profile.email,
+          name: profile.full_name || "N/A",
+          currency: profile.currency,
+          country: profile.country,
+          subscription_tier: profile.subscription_tier,
+          account_created: profile.created_at,
+        },
+        payslips: payslipData.map((p) => ({
+          date: new Date(p.created_at).toLocaleDateString(),
+          gross_pay: formatCurrency(p.gross_pay, globalCurrency),
+          net_pay: formatCurrency(p.net_pay, globalCurrency),
+          tax_deducted: formatCurrency(p.tax_deducted, globalCurrency),
+          pension: formatCurrency(p.pension, globalCurrency),
+          social_security: formatCurrency(p.social_security, globalCurrency),
+          other_deductions: formatCurrency(p.other_deductions, globalCurrency),
+          confirmed: p.confirmed,
+        })),
+        total_payslips: payslipData.length,
+        export_date: new Date().toISOString(),
+      };
+
+      // Convert to JSON and download
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `taxman-data-export-${new Date().toISOString().split("T")[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success("Data exported successfully");
+    } catch (error: any) {
+      console.error("Export error:", error);
+      toast.error(error.message || "Failed to export data. Please try again.");
+    } finally {
+      setExportLoading(false);
     }
   };
 
@@ -264,6 +333,41 @@ export default function Settings() {
               {loading ? "Saving..." : "Save Settings"}
             </Button>
           </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Export Your Data</CardTitle>
+              <CardDescription>
+                Download all your payslip data for your records or compliance purposes
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                Export includes your profile information and all payslip summaries in JSON format. 
+                This data can be imported into spreadsheet software for further analysis.
+              </p>
+              <Button
+                onClick={handleExportData}
+                disabled={exportLoading}
+                variant="outline"
+                className="w-full sm:w-auto"
+                aria-label={exportLoading ? "Exporting data" : "Export your data"}
+                aria-busy={exportLoading}
+              >
+                {exportLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                    Exporting...
+                  </>
+                ) : (
+                  <>
+                    <Download className="mr-2 h-4 w-4" aria-hidden="true" />
+                    Download My Data
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
 
           <Card className="border-destructive">
             <CardHeader>

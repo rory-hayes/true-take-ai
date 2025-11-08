@@ -286,14 +286,21 @@ const PayslipUpload = ({
       )}
       
       {subscriptionTier === "free" && (
-        <div className="mb-4">
+        <div className="mb-4" role="status" aria-live="polite">
           {uploadsRemaining > 0 ? (
-            <p className={`text-sm ${uploadsRemaining <= 1 ? "font-semibold text-orange-600" : "text-muted-foreground"}`}>
+            <p 
+              className={`text-sm ${uploadsRemaining <= 1 ? "font-semibold text-orange-600" : "text-muted-foreground"}`}
+              aria-label={`${uploadsRemaining} upload${uploadsRemaining !== 1 ? 's' : ''} remaining on your free plan`}
+            >
               {uploadsRemaining} upload{uploadsRemaining !== 1 ? 's' : ''} remaining on your free plan
             </p>
           ) : (
-            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4">
-              <p className="text-sm font-semibold text-destructive mb-2">
+            <div 
+              className="bg-destructive/10 border border-destructive/30 rounded-lg p-4"
+              role="alert"
+              aria-labelledby="upload-limit-title"
+            >
+              <p id="upload-limit-title" className="text-sm font-semibold text-destructive mb-2">
                 You've reached your upload limit
               </p>
               <p className="text-xs text-muted-foreground mb-3">
@@ -303,6 +310,7 @@ const PayslipUpload = ({
                 size="sm"
                 onClick={() => navigate("/pricing")}
                 className="w-full"
+                aria-label="Upgrade to paid plan"
               >
                 View Plans & Upgrade
               </Button>
@@ -339,31 +347,41 @@ const PayslipUpload = ({
             }
           }
         }}
+        aria-label={
+          !isEmailVerified 
+            ? "Upload disabled - email verification required" 
+            : (subscriptionTier === "free" && uploadsRemaining <= 0)
+              ? "Upload disabled - upgrade required"
+              : isUploading
+                ? "Uploading payslip, please wait"
+                : "Upload payslip file"
+        }
+        aria-busy={isUploading}
       >
         {!isEmailVerified ? (
           <div className="cursor-not-allowed">
-            <Upload className="mr-2 h-4 w-4 inline" />
+            <Upload className="mr-2 h-4 w-4 inline" aria-hidden="true" />
             Verify Email to Upload
           </div>
         ) : subscriptionTier === "free" && uploadsRemaining <= 0 ? (
           <div className="cursor-not-allowed">
-            <Upload className="mr-2 h-4 w-4 inline" />
+            <Upload className="mr-2 h-4 w-4 inline" aria-hidden="true" />
             Upgrade to Upload
           </div>
         ) : (
           <label 
             htmlFor={compact ? "file-upload-compact" : "file-upload"} 
-            className="cursor-pointer"
-            aria-label="Upload payslip"
+            className="cursor-pointer flex items-center justify-center"
+            aria-label="Select payslip file to upload"
           >
             {isUploading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                <span>Processing...</span>
               </>
             ) : (
               <>
-                <Upload className="mr-2 h-4 w-4" />
+                <Upload className="mr-2 h-4 w-4" aria-hidden="true" />
                 {compact ? "Upload" : "Select File"}
               </>
             )}
@@ -375,16 +393,19 @@ const PayslipUpload = ({
       </p>
 
       <AlertDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent role="alertdialog" aria-labelledby="upgrade-dialog-title" aria-describedby="upgrade-dialog-description">
           <AlertDialogHeader>
-            <AlertDialogTitle>Upload Limit Reached</AlertDialogTitle>
-            <AlertDialogDescription>
-              You've used all {3} uploads on your free plan. Upgrade to a paid plan for unlimited uploads and premium features like AI ChatKit.
+            <AlertDialogTitle id="upgrade-dialog-title">Upload Limit Reached</AlertDialogTitle>
+            <AlertDialogDescription id="upgrade-dialog-description">
+              You've used all 3 uploads on your free plan. Upgrade to a paid plan for unlimited uploads and premium features like AI ChatKit.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => navigate("/pricing")}>
+            <AlertDialogCancel aria-label="Close dialog">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => navigate("/pricing")}
+              aria-label="View pricing plans and upgrade"
+            >
               View Plans & Upgrade
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -34,20 +34,26 @@ export function EmailVerificationBanner({ userEmail }: EmailVerificationBannerPr
   if (!isVisible) return null;
 
   return (
-    <Alert className="mb-6 border-yellow-500 bg-yellow-500/10">
-      <Mail className="h-4 w-4 text-yellow-600" />
-      <AlertTitle className="flex items-center justify-between">
+    <Alert 
+      className="mb-6 border-yellow-500 bg-yellow-500/10" 
+      role="alert"
+      aria-labelledby="email-verification-title"
+      aria-describedby="email-verification-description"
+    >
+      <Mail className="h-4 w-4 text-yellow-600" aria-hidden="true" />
+      <AlertTitle className="flex items-center justify-between" id="email-verification-title">
         <span>Email Verification Required</span>
         <Button
           variant="ghost"
           size="icon"
           className="h-6 w-6"
           onClick={() => setIsVisible(false)}
+          aria-label="Dismiss email verification banner"
         >
-          <X className="h-4 w-4" />
+          <X className="h-4 w-4" aria-hidden="true" />
         </Button>
       </AlertTitle>
-      <AlertDescription className="mt-2">
+      <AlertDescription className="mt-2" id="email-verification-description">
         <p className="mb-3">
           Please verify your email address to unlock all features including inviting friends and managing subscriptions.
         </p>
@@ -56,6 +62,8 @@ export function EmailVerificationBanner({ userEmail }: EmailVerificationBannerPr
           disabled={isSending}
           size="sm"
           variant="outline"
+          aria-label={isSending ? "Sending verification email" : "Resend verification email"}
+          aria-busy={isSending}
         >
           {isSending ? "Sending..." : "Resend Verification Email"}
         </Button>
