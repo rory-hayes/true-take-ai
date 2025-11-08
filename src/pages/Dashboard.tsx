@@ -41,6 +41,15 @@ const Dashboard = () => {
         setUser(session.user);
         setIsEmailVerified(!!session.user.email_confirmed_at);
         fetchPayslipData(session.user.id);
+        
+        // Check if returning from Stripe checkout
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('checkout') === 'success') {
+          // Clear the query parameter
+          window.history.replaceState({}, '', '/dashboard');
+          // Check subscription status
+          checkSubscriptionStatus();
+        }
       }
     });
 
@@ -56,6 +65,44 @@ const Dashboard = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const checkSubscriptionStatus = async () => {
+    try {
+      console.log('Checking subscription status...');
+      const { data, error } = await supabase.functions.invoke('check-subscription');
+      
+      if (error) {
+        console.error('Error checking subscription:', error);
+        toast({
+          title: "Subscription check failed",
+          description: "Please refresh the page to update your subscription status",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('Subscription check result:', data);
+      
+      if (data.subscribed) {
+        toast({
+          title: "Subscription activated!",
+          description: `Welcome to ${data.subscription_tier} tier! Your account has been upgraded.`,
+        });
+        
+        // Refresh the page data to reflect new subscription
+        if (user) {
+          fetchPayslipData(user.id);
+        }
+      } else {
+        toast({
+          title: "Subscription not found",
+          description: "Your payment may still be processing. Please check back in a few minutes.",
+        });
+      }
+    } catch (error) {
+      console.error('Error in checkSubscriptionStatus:', error);
+    }
+  };
 
   const fetchPayslipData = async (userId: string) => {
     try {
