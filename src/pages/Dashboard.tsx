@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Upload, TrendingUp, DollarSign, AlertCircle, Plus, Euro, Banknote } from "lucide-react";
+import { FileText, Upload, TrendingUp, DollarSign, AlertCircle, Plus, Euro, Banknote, TrendingDown, Minus } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import FloatingChatButton from "@/components/FloatingChatButton";
 import { formatCurrency, getCurrencySymbol } from "@/lib/currencyUtils";
@@ -27,7 +27,12 @@ const Dashboard = () => {
   const [stats, setStats] = useState({
     totalUploads: 0,
     latestGrossPay: null as number | null,
+    latestNetPay: null as number | null,
+    ytdGrossPay: null as number | null,
+    ytdNetPay: null as number | null,
     trend: null as string | null,
+    trendDirection: null as 'up' | 'down' | 'neutral' | null,
+    trendAmount: null as number | null,
   });
   const [selectedDialog, setSelectedDialog] = useState<'uploads' | 'latest' | 'trend' | 'pension' | 'upload' | null>(null);
   const [subscriptionTier, setSubscriptionTier] = useState<string>("free");
@@ -172,17 +177,42 @@ const Dashboard = () => {
         const latest = data[0];
         const totalUploads = data.length;
         const latestGrossPay = latest.gross_pay;
+        const latestNetPay = latest.net_pay;
+
+        // Calculate YTD totals (current year)
+        const currentYear = new Date().getFullYear();
+        const ytdPayslips = data.filter(payslip => {
+          const payslipYear = new Date(payslip.created_at).getFullYear();
+          return payslipYear === currentYear;
+        });
+        
+        const ytdGrossPay = ytdPayslips.reduce((sum, p) => sum + (p.gross_pay || 0), 0);
+        const ytdNetPay = ytdPayslips.reduce((sum, p) => sum + (p.net_pay || 0), 0);
 
         // Calculate trend (compare last two payslips)
         let trend = null;
+        let trendDirection: 'up' | 'down' | 'neutral' | null = null;
+        let trendAmount = null;
         if (data.length >= 2) {
           const current = data[0].gross_pay;
           const previous = data[1].gross_pay;
           const change = ((current - previous) / previous) * 100;
+          const absoluteChange = current - previous;
           trend = change > 0 ? `+${change.toFixed(1)}%` : `${change.toFixed(1)}%`;
+          trendAmount = absoluteChange;
+          trendDirection = change > 0.5 ? 'up' : change < -0.5 ? 'down' : 'neutral';
         }
 
-        setStats({ totalUploads, latestGrossPay, trend });
+        setStats({ 
+          totalUploads, 
+          latestGrossPay, 
+          latestNetPay,
+          ytdGrossPay,
+          ytdNetPay,
+          trend,
+          trendDirection,
+          trendAmount
+        });
 
         // Calculate annual income from latest gross pay (multiply by 12)
         if (latestGrossPay) {
@@ -288,9 +318,23 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalUploads}</div>
-              <p className="text-xs text-muted-foreground">
-                {stats.totalUploads === 0 ? "No payslips uploaded yet" : "Click to view all"}
-              </p>
+              {stats.ytdGrossPay !== null && stats.ytdGrossPay > 0 ? (
+                <div className="mt-2 space-y-1">
+                  <p className="text-xs text-muted-foreground">Year-to-Date Totals</p>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Gross:</span>
+                    <span className="font-medium">{formatCurrency(stats.ytdGrossPay, currency)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Net:</span>
+                    <span className="font-medium text-green-600">{formatCurrency(stats.ytdNetPay || 0, currency)}</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {stats.totalUploads === 0 ? "No payslips uploaded yet" : "Click to view all"}
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -299,7 +343,7 @@ const Dashboard = () => {
             onClick={() => stats.latestGrossPay && setSelectedDialog('latest')}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Latest Gross Pay</CardTitle>
+              <CardTitle className="text-sm font-medium">Latest Payslip</CardTitle>
               {currency === 'EUR' ? (
                 <Euro className="h-4 w-4 text-muted-foreground" />
               ) : currency === 'GBP' ? (
@@ -314,9 +358,23 @@ const Dashboard = () => {
               <div className="text-2xl font-bold">
                 {stats.latestGrossPay ? formatCurrency(stats.latestGrossPay, currency) : "-"}
               </div>
-              <p className="text-xs text-muted-foreground">
-                {stats.latestGrossPay ? "Click for breakdown" : "Upload your first payslip"}
-              </p>
+              {stats.latestGrossPay && stats.latestNetPay ? (
+                <div className="mt-2 space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Gross Pay</span>
+                    <span className="font-medium">{formatCurrency(stats.latestGrossPay, currency)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Net Pay</span>
+                    <span className="font-medium text-green-600">{formatCurrency(stats.latestNetPay, currency)}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Click for full breakdown</p>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Upload your first payslip
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -326,13 +384,38 @@ const Dashboard = () => {
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Trend</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              {stats.trendDirection === 'up' ? (
+                <TrendingUp className="h-4 w-4 text-green-600" />
+              ) : stats.trendDirection === 'down' ? (
+                <TrendingDown className="h-4 w-4 text-red-600" />
+              ) : stats.trendDirection === 'neutral' ? (
+                <Minus className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              )}
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.trend || "-"}</div>
-              <p className="text-xs text-muted-foreground">
-                {stats.trend ? "Click for comparison" : "Need more data"}
-              </p>
+              <div className={`text-2xl font-bold ${
+                stats.trendDirection === 'up' ? 'text-green-600' : 
+                stats.trendDirection === 'down' ? 'text-red-600' : 
+                ''
+              }`}>
+                {stats.trend || "-"}
+              </div>
+              {stats.trend && stats.trendAmount !== null ? (
+                <div className="mt-2 space-y-1">
+                  <p className="text-xs text-muted-foreground">
+                    {stats.trendDirection === 'up' ? 'Increase' : stats.trendDirection === 'down' ? 'Decrease' : 'Change'} of {formatCurrency(Math.abs(stats.trendAmount), currency)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    vs previous payslip
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Upload a second payslip to see trends
+                </p>
+              )}
             </CardContent>
           </Card>
 
