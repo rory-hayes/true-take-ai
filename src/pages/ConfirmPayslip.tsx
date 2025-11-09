@@ -6,9 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle2, Pencil, Check, X } from "lucide-react";
+import { Loader2, CheckCircle2, Pencil, Check, X, AlertTriangle } from "lucide-react";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { getCurrencySymbol } from "@/lib/currencyUtils";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface PayslipData {
   id: string;
@@ -272,8 +273,18 @@ const ConfirmPayslip = () => {
                 </div>
               </div>
 
-              {data.additional_data && Object.keys(data.additional_data).length > 0 && (
-                <div className="pt-4 border-t">
+              {data.additional_data?.validation_warnings && (
+                <Alert variant="destructive" className="mt-6">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Validation Warnings</AlertTitle>
+                  <AlertDescription className="mt-2">
+                    {data.additional_data.validation_warnings}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {data.additional_data && Object.keys(data.additional_data).filter(key => key !== 'validation_warnings').length > 0 && (
+                <div className="pt-6 border-t mt-6">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold">Additional Information</h3>
                     {!isEditingAdditional ? (
@@ -312,30 +323,34 @@ const ConfirmPayslip = () => {
                   
                   {!isEditingAdditional ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                      {Object.entries(data.additional_data).map(([key, value]) => (
-                        <div key={key} className="flex justify-between">
-                          <span className="text-muted-foreground capitalize">
-                            {key.replace(/_/g, ' ')}:
-                          </span>
-                          <span className="font-medium">{String(value)}</span>
-                        </div>
-                      ))}
+                      {Object.entries(data.additional_data)
+                        .filter(([key]) => key !== 'validation_warnings')
+                        .map(([key, value]) => (
+                          <div key={key} className="flex justify-between">
+                            <span className="text-muted-foreground capitalize">
+                              {key.replace(/_/g, ' ')}:
+                            </span>
+                            <span className="font-medium">{String(value)}</span>
+                          </div>
+                        ))}
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 gap-3">
-                      {Object.entries(editedAdditionalData).map(([key, value]) => (
-                        <div key={key} className="space-y-1">
-                          <Label htmlFor={`additional_${key}`} className="text-xs capitalize">
-                            {key.replace(/_/g, ' ')}
-                          </Label>
-                          <Input
-                            id={`additional_${key}`}
-                            value={String(value)}
-                            onChange={(e) => handleAdditionalDataEdit(key, e.target.value)}
-                            className="text-sm"
-                          />
-                        </div>
-                      ))}
+                      {Object.entries(editedAdditionalData)
+                        .filter(([key]) => key !== 'validation_warnings')
+                        .map(([key, value]) => (
+                          <div key={key} className="space-y-1">
+                            <Label htmlFor={`additional_${key}`} className="text-xs capitalize">
+                              {key.replace(/_/g, ' ')}
+                            </Label>
+                            <Input
+                              id={`additional_${key}`}
+                              value={String(value)}
+                              onChange={(e) => handleAdditionalDataEdit(key, e.target.value)}
+                              className="text-sm"
+                            />
+                          </div>
+                        ))}
                     </div>
                   )}
                 </div>
