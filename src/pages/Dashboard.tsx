@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Upload, TrendingUp, DollarSign, AlertCircle, Plus, Euro, Banknote, TrendingDown, Minus } from "lucide-react";
+import { FileText, Upload, TrendingUp, DollarSign, AlertCircle, Plus, Euro, Banknote, TrendingDown, Minus, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import FloatingChatButton from "@/components/FloatingChatButton";
 import { formatCurrency, getCurrencySymbol } from "@/lib/currencyUtils";
@@ -28,6 +29,8 @@ const Dashboard = () => {
     totalUploads: 0,
     latestGrossPay: null as number | null,
     latestNetPay: null as number | null,
+    latestDeductions: null as number | null,
+    latestDeductionsPercent: null as number | null,
     ytdGrossPay: null as number | null,
     ytdNetPay: null as number | null,
     trend: null as string | null,
@@ -178,6 +181,10 @@ const Dashboard = () => {
         const totalUploads = data.length;
         const latestGrossPay = latest.gross_pay;
         const latestNetPay = latest.net_pay;
+        
+        // Calculate deductions
+        const latestDeductions = latestGrossPay && latestNetPay ? latestGrossPay - latestNetPay : null;
+        const latestDeductionsPercent = latestGrossPay && latestDeductions ? (latestDeductions / latestGrossPay) * 100 : null;
 
         // Calculate YTD totals (current year)
         const currentYear = new Date().getFullYear();
@@ -207,6 +214,8 @@ const Dashboard = () => {
           totalUploads, 
           latestGrossPay, 
           latestNetPay,
+          latestDeductions,
+          latestDeductionsPercent,
           ytdGrossPay,
           ytdNetPay,
           trend,
@@ -283,6 +292,7 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
+        <TooltipProvider>
         {!isEmailVerified && <EmailVerificationBanner userEmail={user?.email || ""} />}
         
         {subscriptionTier === "free" && (
@@ -320,7 +330,17 @@ const Dashboard = () => {
               <div className="text-2xl font-bold">{stats.totalUploads}</div>
               {stats.ytdGrossPay !== null && stats.ytdGrossPay > 0 ? (
                 <div className="mt-3 space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Year-to-Date Totals</p>
+                  <div className="flex items-center gap-1">
+                    <p className="text-sm font-medium text-muted-foreground">Year-to-Date Totals</p>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">Sum of all confirmed payslips in the current calendar year (Jan 1 - Dec 31)</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Gross:</span>
                     <span className="font-semibold">{formatCurrency(stats.ytdGrossPay, currency)}</span>
@@ -368,6 +388,14 @@ const Dashboard = () => {
                     <span className="text-muted-foreground">Net Pay</span>
                     <span className="font-semibold text-green-600">{formatCurrency(stats.latestNetPay, currency)}</span>
                   </div>
+                  {stats.latestDeductions !== null && stats.latestDeductionsPercent !== null && (
+                    <div className="flex justify-between text-sm pt-1 border-t border-border/50">
+                      <span className="text-muted-foreground">Deductions</span>
+                      <span className="font-semibold text-red-600">
+                        {formatCurrency(stats.latestDeductions, currency)} ({stats.latestDeductionsPercent.toFixed(1)}%)
+                      </span>
+                    </div>
+                  )}
                   <p className="text-sm text-muted-foreground mt-2">Click for full breakdown</p>
                 </div>
               ) : (
@@ -383,7 +411,17 @@ const Dashboard = () => {
             onClick={() => stats.trend && setSelectedDialog('trend')}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Trend</CardTitle>
+              <div className="flex items-center gap-1">
+                <CardTitle className="text-sm font-medium">Trend</CardTitle>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">Percentage change in gross pay compared to your previous payslip</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               {stats.trendDirection === 'up' ? (
                 <TrendingUp className="h-4 w-4 text-green-600" />
               ) : stats.trendDirection === 'down' ? (
@@ -699,6 +737,7 @@ const Dashboard = () => {
             />
           </DialogContent>
         </Dialog>
+        </TooltipProvider>
       </main>
 
       {/* Floating Chat Button */}
