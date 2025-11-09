@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { FileText } from "lucide-react";
+import { FileText, Mail } from "lucide-react";
 import { z } from "zod";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
@@ -46,7 +46,6 @@ const Auth = () => {
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
-  const referralCode = searchParams.get("ref");
 
   useEffect(() => {
     // Check if user is already logged in
@@ -114,26 +113,6 @@ const Auth = () => {
           .eq("id", authData.user.id);
       }
 
-      // If there's a referral code, update the referral record
-      if (referralCode) {
-        const { data: referralData } = await supabase
-          .from("referrals")
-          .select("id, referrer_id")
-          .eq("referral_code", referralCode)
-          .single();
-
-        if (referralData) {
-          await supabase
-            .from("referrals")
-            .update({
-              referred_user_id: (await supabase.auth.getUser()).data.user?.id,
-              status: "completed",
-              completed_at: new Date().toISOString(),
-            })
-            .eq("id", referralData.id);
-        }
-      }
-
       toast({
         title: "Account created!",
         description: "Please check your email to verify your account.",
@@ -194,6 +173,25 @@ const Auth = () => {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+
+      if (error) throw error;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to sign in with Google",
+        variant: "destructive",
+      });
     }
   };
 
@@ -328,6 +326,28 @@ const Auth = () => {
                 </p>
               )}
             </form>
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={handleGoogleSignIn}
+              disabled={isLoading}
+            >
+              <Mail className="mr-2 h-4 w-4" />
+              Sign in with Google
+            </Button>
 
             <div className="mt-4 text-center text-sm">
               <button

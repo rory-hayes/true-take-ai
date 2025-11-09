@@ -245,9 +245,6 @@ export default function Settings() {
         await supabase.storage.from("payslips").remove(filePaths);
       }
 
-      // Delete referrals
-      await supabase.from("referrals").delete().eq("referrer_id", userId);
-
       // Delete subscriptions (if any)
       await supabase.from("subscriptions").delete().eq("user_id", userId);
 
