@@ -319,19 +319,19 @@ const Dashboard = () => {
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalUploads}</div>
               {stats.ytdGrossPay !== null && stats.ytdGrossPay > 0 ? (
-                <div className="mt-2 space-y-1">
-                  <p className="text-xs text-muted-foreground">Year-to-Date Totals</p>
-                  <div className="flex justify-between text-xs">
+                <div className="mt-3 space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Year-to-Date Totals</p>
+                  <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Gross:</span>
-                    <span className="font-medium">{formatCurrency(stats.ytdGrossPay, currency)}</span>
+                    <span className="font-semibold">{formatCurrency(stats.ytdGrossPay, currency)}</span>
                   </div>
-                  <div className="flex justify-between text-xs">
+                  <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Net:</span>
-                    <span className="font-medium text-green-600">{formatCurrency(stats.ytdNetPay || 0, currency)}</span>
+                    <span className="font-semibold text-green-600">{formatCurrency(stats.ytdNetPay || 0, currency)}</span>
                   </div>
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-sm text-muted-foreground mt-2">
                   {stats.totalUploads === 0 ? "No payslips uploaded yet" : "Click to view all"}
                 </p>
               )}
@@ -359,19 +359,19 @@ const Dashboard = () => {
                 {stats.latestGrossPay ? formatCurrency(stats.latestGrossPay, currency) : "-"}
               </div>
               {stats.latestGrossPay && stats.latestNetPay ? (
-                <div className="mt-2 space-y-1">
-                  <div className="flex justify-between text-xs">
+                <div className="mt-3 space-y-2">
+                  <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Gross Pay</span>
-                    <span className="font-medium">{formatCurrency(stats.latestGrossPay, currency)}</span>
+                    <span className="font-semibold">{formatCurrency(stats.latestGrossPay, currency)}</span>
                   </div>
-                  <div className="flex justify-between text-xs">
+                  <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Net Pay</span>
-                    <span className="font-medium text-green-600">{formatCurrency(stats.latestNetPay, currency)}</span>
+                    <span className="font-semibold text-green-600">{formatCurrency(stats.latestNetPay, currency)}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">Click for full breakdown</p>
+                  <p className="text-sm text-muted-foreground mt-2">Click for full breakdown</p>
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-sm text-muted-foreground mt-2">
                   Upload your first payslip
                 </p>
               )}
@@ -403,16 +403,16 @@ const Dashboard = () => {
                 {stats.trend || "-"}
               </div>
               {stats.trend && stats.trendAmount !== null ? (
-                <div className="mt-2 space-y-1">
-                  <p className="text-xs text-muted-foreground">
+                <div className="mt-3 space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">
                     {stats.trendDirection === 'up' ? 'Increase' : stats.trendDirection === 'down' ? 'Decrease' : 'Change'} of {formatCurrency(Math.abs(stats.trendAmount), currency)}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     vs previous payslip
                   </p>
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-sm text-muted-foreground mt-2">
                   Upload a second payslip to see trends
                 </p>
               )}
