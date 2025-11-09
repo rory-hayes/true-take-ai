@@ -11,7 +11,7 @@ export default function PrivacyPolicy() {
       <div className="container max-w-4xl mx-auto py-8 px-4">
         <Button
           variant="ghost"
-          onClick={() => navigate(-1)}
+          onClick={() => navigate("/")}
           className="mb-6"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
