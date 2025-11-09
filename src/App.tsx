@@ -10,7 +10,7 @@ import ConfirmPayslip from "./pages/ConfirmPayslip";
 import UserProfile from "./pages/UserProfile";
 import Pricing from "./pages/Pricing";
 import Settings from "./pages/Settings";
-import InviteFriend from "./pages/InviteFriend";
+
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import PayslipDetail from "./pages/PayslipDetail";
@@ -32,7 +32,7 @@ const App = () => (
         <Route path="/profile" element={<UserProfile />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/settings" element={<Settings />} />
-        <Route path="/invite" element={<InviteFriend />} />
+        
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/payslip/:id" element={<PayslipDetail />} />

@@ -170,10 +170,6 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
-          invites_sent: number
-          invites_sent_today: number | null
-          last_invite_date: string | null
-          max_invites: number
           payment_day: number | null
           privacy_accepted_at: string | null
           signup_ip_address: string | null
@@ -195,10 +191,6 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
-          invites_sent?: number
-          invites_sent_today?: number | null
-          last_invite_date?: string | null
-          max_invites?: number
           payment_day?: number | null
           privacy_accepted_at?: string | null
           signup_ip_address?: string | null
@@ -220,10 +212,6 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
-          invites_sent?: number
-          invites_sent_today?: number | null
-          last_invite_date?: string | null
-          max_invites?: number
           payment_day?: number | null
           privacy_accepted_at?: string | null
           signup_ip_address?: string | null
@@ -235,45 +223,6 @@ export type Database = {
           terms_accepted_at?: string | null
           updated_at?: string
           uploads_remaining?: number
-        }
-        Relationships: []
-      }
-      referrals: {
-        Row: {
-          completed_at: string | null
-          created_at: string | null
-          id: string
-          referral_code: string
-          referred_email: string
-          referred_user_id: string | null
-          referrer_id: string
-          reward_applied: boolean | null
-          reward_expires_at: string | null
-          status: string
-        }
-        Insert: {
-          completed_at?: string | null
-          created_at?: string | null
-          id?: string
-          referral_code: string
-          referred_email: string
-          referred_user_id?: string | null
-          referrer_id: string
-          reward_applied?: boolean | null
-          reward_expires_at?: string | null
-          status?: string
-        }
-        Update: {
-          completed_at?: string | null
-          created_at?: string | null
-          id?: string
-          referral_code?: string
-          referred_email?: string
-          referred_user_id?: string | null
-          referrer_id?: string
-          reward_applied?: boolean | null
-          reward_expires_at?: string | null
-          status?: string
         }
         Relationships: []
       }

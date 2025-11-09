@@ -1,4 +1,4 @@
-import { User, Settings, CreditCard, Users, LogOut, AlertCircle } from "lucide-react";
+import { User, Settings, CreditCard, LogOut, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -121,11 +121,6 @@ export const UserMenu = ({ userEmail, isEmailVerified = true }: UserMenuProps) =
         <DropdownMenuItem onClick={() => navigate("/settings")}>
           <Settings className="mr-2 h-4 w-4" />
           <span>Settings</span>
-        </DropdownMenuItem>
-        
-        <DropdownMenuItem onClick={() => navigate("/invite")}>
-          <Users className="mr-2 h-4 w-4" />
-          <span>Invite a Friend</span>
         </DropdownMenuItem>
         
         <DropdownMenuSeparator />
