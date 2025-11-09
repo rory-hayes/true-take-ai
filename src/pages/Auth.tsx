@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { FileText, Mail } from "lucide-react";
+import { FileText } from "lucide-react";
+import googleLogo from "@/assets/google-logo.svg";
 import { z } from "zod";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
@@ -345,7 +346,7 @@ const Auth = () => {
               onClick={handleGoogleSignIn}
               disabled={isLoading}
             >
-              <Mail className="mr-2 h-4 w-4" />
+              <img src={googleLogo} alt="Google" className="mr-2 h-4 w-4" />
               Sign in with Google
             </Button>
 
