@@ -132,8 +132,8 @@ export default function Pricing() {
       price: formatCurrency(BASE_PRICES.tax_package, currency),
       period: " one-time",
       features: [
-        "AI-analyzed tax return breakdown",
-        "Personalized tax saving recommendations",
+        "AI-analysed tax return breakdown",
+        "Personalised tax saving recommendations",
         "Deduction opportunities identification",
         "Step-by-step filing guide",
       ],
@@ -340,11 +340,11 @@ export default function Pricing() {
             <ul className="space-y-3 mb-6">
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-primary" />
-                <span>AI-analyzed tax return breakdown</span>
+                <span>AI-analysed tax return breakdown</span>
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-primary" />
-                <span>Personalized tax saving recommendations</span>
+                <span>Personalised tax saving recommendations</span>
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-primary" />

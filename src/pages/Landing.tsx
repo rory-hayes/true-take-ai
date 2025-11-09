@@ -56,7 +56,7 @@ const Landing = () => {
             Understand your payslip. Catch mistakes. Gain clarity.
           </p>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Tally analyzes each payslip instantly—explaining your pay, taxes, and deductions in human language. Keep every payslip consistent and catch issues before they cost you money.
+            Tally analyses each payslip instantly—explaining your pay, taxes, and deductions in human language. Keep every payslip consistent and catch issues before they cost you money.
           </p>
           <div className="flex flex-col gap-3 max-w-md mx-auto text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
@@ -69,7 +69,7 @@ const Landing = () => {
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-primary" />
-              <span>Learn from thousands of analyzed payslips</span>
+              <span>Learn from thousands of analysed payslips</span>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">

@@ -304,7 +304,7 @@ export default function PayslipDetail() {
                 </div>
 
                 <div>
-                  <Label htmlFor="social_security">Social Security</Label>
+                  <Label htmlFor="social_security">PRSI</Label>
                   {isEditing ? (
                     <Input
                       id="social_security"

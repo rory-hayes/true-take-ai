@@ -251,7 +251,7 @@ const ConfirmPayslip = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="social_security">Social Security ({currencySymbol})</Label>
+                  <Label htmlFor="social_security">PRSI ({currencySymbol})</Label>
                   <Input
                     id="social_security"
                     type="number"
@@ -277,8 +277,11 @@ const ConfirmPayslip = () => {
                 <Alert variant="destructive" className="mt-6">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertTitle>Validation Warnings</AlertTitle>
-                  <AlertDescription className="mt-2">
-                    {data.additional_data.validation_warnings}
+                  <AlertDescription className="mt-2 space-y-2">
+                    <p>{data.additional_data.validation_warnings}</p>
+                    <p className="text-sm">
+                      Please review the amounts above and correct any discrepancies. The net pay should equal gross pay minus all deductions (tax, PRSI, pension, and other deductions).
+                    </p>
                   </AlertDescription>
                 </Alert>
               )}
@@ -335,19 +338,18 @@ const ConfirmPayslip = () => {
                         ))}
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {Object.entries(editedAdditionalData)
                         .filter(([key]) => key !== 'validation_warnings')
                         .map(([key, value]) => (
-                          <div key={key} className="space-y-1">
-                            <Label htmlFor={`additional_${key}`} className="text-xs capitalize">
+                          <div key={key} className="space-y-2">
+                            <Label htmlFor={`additional_${key}`} className="text-sm capitalize">
                               {key.replace(/_/g, ' ')}
                             </Label>
                             <Input
                               id={`additional_${key}`}
                               value={String(value)}
                               onChange={(e) => handleAdditionalDataEdit(key, e.target.value)}
-                              className="text-sm"
                             />
                           </div>
                         ))}

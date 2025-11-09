@@ -273,7 +273,7 @@ const Dashboard = () => {
         
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Your Dashboard</h1>
-          <p className="text-muted-foreground">Track and analyze your payslip data</p>
+          <p className="text-muted-foreground">Track and analyse your payslip data</p>
         </div>
 
         {/* Stats Cards - Now 4 cards including Upload */}
@@ -468,7 +468,7 @@ const Dashboard = () => {
                     <span className="text-red-600">-{formatCurrency(payslipData[0].pension, currency)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Social Security</span>
+                    <span className="text-muted-foreground">PRSI</span>
                     <span className="text-red-600">-{formatCurrency(payslipData[0].social_security, currency)}</span>
                   </div>
                   {payslipData[0].other_deductions > 0 && (
