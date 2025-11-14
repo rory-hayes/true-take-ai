@@ -16,8 +16,8 @@ const Landing = () => {
       <header className="border-b border-border sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FileText className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--accent))] bg-clip-text text-transparent">
+            <FileText className="h-8 w-8 text-primary transition-transform hover:scale-110 duration-300" />
+            <span className="text-2xl font-bold text-foreground">
               Tally
             </span>
           </div>
@@ -49,26 +49,28 @@ const Landing = () => {
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-20 md:py-32">
         <div className="max-w-4xl mx-auto text-center space-y-8">
-          <h1 className="text-4xl md:text-6xl font-bold leading-tight">
-            AI-Powered Payslip Analysis
-          </h1>
-          <p className="text-2xl md:text-3xl font-semibold bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--accent))] bg-clip-text text-transparent">
-            Understand your payslip. Catch mistakes. Gain clarity.
-          </p>
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-primary uppercase tracking-wider">
+              AI-POWERED PAYSLIP ANALYSIS
+            </p>
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold leading-tight text-foreground">
+              Understand your payslip. Catch mistakes. Gain clarity.
+            </h1>
+          </div>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Tally analyses each payslip instantly—explaining your pay, taxes, and deductions in human language. Keep every payslip consistent and catch issues before they cost you money.
           </p>
           <div className="flex flex-col gap-3 max-w-md mx-auto text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-primary" />
+              <CheckCircle className="h-5 w-5 text-primary transition-transform hover:scale-110 duration-300" />
               <span>Start without a credit card</span>
             </div>
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-primary" />
+              <CheckCircle className="h-5 w-5 text-primary transition-transform hover:scale-110 duration-300" />
               <span>See insights in under five seconds</span>
             </div>
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-primary" />
+              <CheckCircle className="h-5 w-5 text-primary transition-transform hover:scale-110 duration-300" />
               <span>Learn from thousands of analysed payslips</span>
             </div>
           </div>

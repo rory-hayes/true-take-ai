@@ -208,8 +208,8 @@ const Auth = () => {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="flex items-center justify-center gap-2 mb-8">
-          <FileText className="h-8 w-8 text-primary" />
-          <span className="text-2xl font-bold bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--accent))] bg-clip-text text-transparent">
+          <FileText className="h-8 w-8 text-primary transition-transform hover:scale-110 duration-300" />
+          <span className="text-2xl font-bold text-foreground">
             Tally
           </span>
         </div>

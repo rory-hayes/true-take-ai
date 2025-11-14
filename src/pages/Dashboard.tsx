@@ -270,8 +270,8 @@ const Dashboard = () => {
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FileText className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--accent))] bg-clip-text text-transparent">
+            <FileText className="h-8 w-8 text-primary transition-transform hover:scale-110 duration-300" />
+            <span className="text-2xl font-bold text-foreground">
               Tally
             </span>
           </div>
