@@ -135,7 +135,7 @@ const Dashboard = () => {
         .from('profiles')
         .select('subscription_tier, uploads_remaining, date_of_birth')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (profile?.subscription_tier) {
         setSubscriptionTier(profile.subscription_tier);
@@ -195,11 +195,9 @@ const Dashboard = () => {
       }
     } catch (error) {
       console.error('Error fetching payslip data:', error);
-      toast({
-        title: "Error loading data",
-        description: "Failed to load your payslip data",
-        variant: "destructive",
-      });
+      // Leave the dashboard in a safe "no data" state without alarming the user.
+      setPayslipData([]);
+      setStats({ totalUploads: 0, latestGrossPay: null, trend: null });
     } finally {
       setIsLoading(false);
     }
