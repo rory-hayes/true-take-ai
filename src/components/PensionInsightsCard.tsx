@@ -4,7 +4,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { HelpCircle, TrendingUp } from "lucide-react";
 import { formatCurrency } from "@/lib/currencyUtils";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { useNavigate } from "react-router-dom";
 
 interface PensionInsightsCardProps {
   age: number | null;
@@ -29,7 +28,6 @@ export function PensionInsightsCard({
   onClick 
 }: PensionInsightsCardProps) {
   const { currency } = useCurrency();
-  const navigate = useNavigate();
   
   // Calculate pension insights
   const eligibleIncome = Math.min(grossAnnualIncome, 115000);
@@ -78,21 +76,9 @@ export function PensionInsightsCard({
             <p className="text-xs text-muted-foreground">
               Recommended Monthly Contribution
             </p>
-            {age ? (
-              <p className="text-xs text-muted-foreground mt-1">
-                Based on your age ({age}), income, and Revenue limits for tax relief
-              </p>
-            ) : (
-              <button 
-                className="text-xs text-primary hover:underline mt-1"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate('/settings');
-                }}
-              >
-                Add your date of birth in settings →
-              </button>
-            )}
+            <p className="text-xs text-muted-foreground mt-1">
+              Based on your {age ? `age (${age}), ` : ""}income, and Revenue limits for tax relief
+            </p>
           </div>
 
           <div className="space-y-2">

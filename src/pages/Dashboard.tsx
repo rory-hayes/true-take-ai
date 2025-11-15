@@ -4,9 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Upload, TrendingUp, DollarSign, AlertCircle, Plus, Euro, Banknote, TrendingDown, Minus, Info } from "lucide-react";
+import { FileText, Upload, TrendingUp, DollarSign, AlertCircle, Plus, Euro, Banknote } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import FloatingChatButton from "@/components/FloatingChatButton";
 import { formatCurrency, getCurrencySymbol } from "@/lib/currencyUtils";
@@ -28,14 +27,7 @@ const Dashboard = () => {
   const [stats, setStats] = useState({
     totalUploads: 0,
     latestGrossPay: null as number | null,
-    latestNetPay: null as number | null,
-    latestDeductions: null as number | null,
-    latestDeductionsPercent: null as number | null,
-    ytdGrossPay: null as number | null,
-    ytdNetPay: null as number | null,
     trend: null as string | null,
-    trendDirection: null as 'up' | 'down' | 'neutral' | null,
-    trendAmount: null as number | null,
   });
   const [selectedDialog, setSelectedDialog] = useState<'uploads' | 'latest' | 'trend' | 'pension' | 'upload' | null>(null);
   const [subscriptionTier, setSubscriptionTier] = useState<string>("free");
@@ -180,48 +172,17 @@ const Dashboard = () => {
         const latest = data[0];
         const totalUploads = data.length;
         const latestGrossPay = latest.gross_pay;
-        const latestNetPay = latest.net_pay;
-        
-        // Calculate deductions
-        const latestDeductions = latestGrossPay && latestNetPay ? latestGrossPay - latestNetPay : null;
-        const latestDeductionsPercent = latestGrossPay && latestDeductions ? (latestDeductions / latestGrossPay) * 100 : null;
-
-        // Calculate YTD totals (current year)
-        const currentYear = new Date().getFullYear();
-        const ytdPayslips = data.filter(payslip => {
-          const payslipYear = new Date(payslip.created_at).getFullYear();
-          return payslipYear === currentYear;
-        });
-        
-        const ytdGrossPay = ytdPayslips.reduce((sum, p) => sum + (p.gross_pay || 0), 0);
-        const ytdNetPay = ytdPayslips.reduce((sum, p) => sum + (p.net_pay || 0), 0);
 
         // Calculate trend (compare last two payslips)
         let trend = null;
-        let trendDirection: 'up' | 'down' | 'neutral' | null = null;
-        let trendAmount = null;
         if (data.length >= 2) {
           const current = data[0].gross_pay;
           const previous = data[1].gross_pay;
           const change = ((current - previous) / previous) * 100;
-          const absoluteChange = current - previous;
           trend = change > 0 ? `+${change.toFixed(1)}%` : `${change.toFixed(1)}%`;
-          trendAmount = absoluteChange;
-          trendDirection = change > 0.5 ? 'up' : change < -0.5 ? 'down' : 'neutral';
         }
 
-        setStats({ 
-          totalUploads, 
-          latestGrossPay, 
-          latestNetPay,
-          latestDeductions,
-          latestDeductionsPercent,
-          ytdGrossPay,
-          ytdNetPay,
-          trend,
-          trendDirection,
-          trendAmount
-        });
+        setStats({ totalUploads, latestGrossPay, trend });
 
         // Calculate annual income from latest gross pay (multiply by 12)
         if (latestGrossPay) {
@@ -270,8 +231,8 @@ const Dashboard = () => {
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FileText className="h-8 w-8 text-primary transition-transform hover:scale-110 duration-300" />
-            <span className="text-2xl font-bold text-foreground">
+            <FileText className="h-8 w-8 text-primary" />
+            <span className="text-2xl font-bold bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--accent))] bg-clip-text text-transparent">
               Tally
             </span>
           </div>
@@ -292,7 +253,6 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <TooltipProvider>
         {!isEmailVerified && <EmailVerificationBanner userEmail={user?.email || ""} />}
         
         {subscriptionTier === "free" && (
@@ -313,7 +273,7 @@ const Dashboard = () => {
         
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Your Dashboard</h1>
-          <p className="text-muted-foreground">Track and analyse your payslip data</p>
+          <p className="text-muted-foreground">Track and analyze your payslip data</p>
         </div>
 
         {/* Stats Cards - Now 4 cards including Upload */}
@@ -328,33 +288,9 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalUploads}</div>
-              {stats.ytdGrossPay !== null && stats.ytdGrossPay > 0 ? (
-                <div className="mt-3 space-y-2">
-                  <div className="flex items-center gap-1">
-                    <p className="text-sm font-medium text-muted-foreground">Year-to-Date Totals</p>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="max-w-xs">Sum of all confirmed payslips in the current calendar year (Jan 1 - Dec 31)</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Gross:</span>
-                    <span className="font-semibold">{formatCurrency(stats.ytdGrossPay, currency)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Net:</span>
-                    <span className="font-semibold text-green-600">{formatCurrency(stats.ytdNetPay || 0, currency)}</span>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground mt-2">
-                  {stats.totalUploads === 0 ? "No payslips uploaded yet" : "Click to view all"}
-                </p>
-              )}
+              <p className="text-xs text-muted-foreground">
+                {stats.totalUploads === 0 ? "No payslips uploaded yet" : "Click to view all"}
+              </p>
             </CardContent>
           </Card>
 
@@ -363,7 +299,7 @@ const Dashboard = () => {
             onClick={() => stats.latestGrossPay && setSelectedDialog('latest')}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Latest Payslip</CardTitle>
+              <CardTitle className="text-sm font-medium">Latest Gross Pay</CardTitle>
               {currency === 'EUR' ? (
                 <Euro className="h-4 w-4 text-muted-foreground" />
               ) : currency === 'GBP' ? (
@@ -378,31 +314,9 @@ const Dashboard = () => {
               <div className="text-2xl font-bold">
                 {stats.latestGrossPay ? formatCurrency(stats.latestGrossPay, currency) : "-"}
               </div>
-              {stats.latestGrossPay && stats.latestNetPay ? (
-                <div className="mt-3 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Gross Pay</span>
-                    <span className="font-semibold">{formatCurrency(stats.latestGrossPay, currency)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Net Pay</span>
-                    <span className="font-semibold text-green-600">{formatCurrency(stats.latestNetPay, currency)}</span>
-                  </div>
-                  {stats.latestDeductions !== null && stats.latestDeductionsPercent !== null && (
-                    <div className="flex justify-between text-sm pt-1 border-t border-border/50">
-                      <span className="text-muted-foreground">Deductions</span>
-                      <span className="font-semibold text-red-600">
-                        {formatCurrency(stats.latestDeductions, currency)} ({stats.latestDeductionsPercent.toFixed(1)}%)
-                      </span>
-                    </div>
-                  )}
-                  <p className="text-sm text-muted-foreground mt-2">Click for full breakdown</p>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground mt-2">
-                  Upload your first payslip
-                </p>
-              )}
+              <p className="text-xs text-muted-foreground">
+                {stats.latestGrossPay ? "Click for breakdown" : "Upload your first payslip"}
+              </p>
             </CardContent>
           </Card>
 
@@ -411,49 +325,14 @@ const Dashboard = () => {
             onClick={() => stats.trend && setSelectedDialog('trend')}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <div className="flex items-center gap-1">
-                <CardTitle className="text-sm font-medium">Trend</CardTitle>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="max-w-xs">Percentage change in gross pay compared to your previous payslip</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              {stats.trendDirection === 'up' ? (
-                <TrendingUp className="h-4 w-4 text-green-600" />
-              ) : stats.trendDirection === 'down' ? (
-                <TrendingDown className="h-4 w-4 text-red-600" />
-              ) : stats.trendDirection === 'neutral' ? (
-                <Minus className="h-4 w-4 text-muted-foreground" />
-              ) : (
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              )}
+              <CardTitle className="text-sm font-medium">Trend</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${
-                stats.trendDirection === 'up' ? 'text-green-600' : 
-                stats.trendDirection === 'down' ? 'text-red-600' : 
-                ''
-              }`}>
-                {stats.trend || "-"}
-              </div>
-              {stats.trend && stats.trendAmount !== null ? (
-                <div className="mt-3 space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    {stats.trendDirection === 'up' ? 'Increase' : stats.trendDirection === 'down' ? 'Decrease' : 'Change'} of {formatCurrency(Math.abs(stats.trendAmount), currency)}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    vs previous payslip
-                  </p>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground mt-2">
-                  Upload a second payslip to see trends
-                </p>
-              )}
+              <div className="text-2xl font-bold">{stats.trend || "-"}</div>
+              <p className="text-xs text-muted-foreground">
+                {stats.trend ? "Click for comparison" : "Need more data"}
+              </p>
             </CardContent>
           </Card>
 
@@ -589,7 +468,7 @@ const Dashboard = () => {
                     <span className="text-red-600">-{formatCurrency(payslipData[0].pension, currency)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">PRSI</span>
+                    <span className="text-muted-foreground">Social Security</span>
                     <span className="text-red-600">-{formatCurrency(payslipData[0].social_security, currency)}</span>
                   </div>
                   {payslipData[0].other_deductions > 0 && (
@@ -737,7 +616,6 @@ const Dashboard = () => {
             />
           </DialogContent>
         </Dialog>
-        </TooltipProvider>
       </main>
 
       {/* Floating Chat Button */}

@@ -16,7 +16,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FileText, LayoutDashboard, Upload, CreditCard, Settings } from "lucide-react";
+import { FileText, LayoutDashboard, Upload, CreditCard, Settings, Users } from "lucide-react";
 import { UserMenu } from "@/components/UserMenu";
 import { Input } from "@/components/ui/input";
 
@@ -90,6 +90,15 @@ export default function AppShell({ children, userEmail = "", isEmailVerified = t
                   >
                     <Settings />
                     <span>Settings</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    isActive={isActive("/invite")}
+                    onClick={() => navigate("/invite")}
+                  >
+                    <Users />
+                    <span>Invite a Friend</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>

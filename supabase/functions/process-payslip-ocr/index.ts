@@ -283,11 +283,13 @@ IMPORTANT:
       console.warn('Validation warnings:', validation.errors);
       extractedData.additional_data = {
         ...extractedData.additional_data,
-        validation_warnings: validation.errors
+        validation_warnings: validation.errors,
+        extraction_method: 'ocrspace'
       };
     } else {
       extractedData.additional_data = {
-        ...extractedData.additional_data
+        ...extractedData.additional_data,
+        extraction_method: 'ocrspace'
       };
     }
 
@@ -340,6 +342,7 @@ IMPORTANT:
         data: payslipData,
         payslip_id: payslipId,
         processing_time_ms: processingTime,
+        extraction_method: 'ocrspace',
         validation: validation
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
