@@ -47,7 +47,14 @@ const Landing = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-20 md:py-32">
+      <section className="container mx-auto px-4 py-20 md:py-32 relative overflow-hidden">
+        {/* Animated Background Shapes */}
+        <div className="absolute inset-0 -z-10 overflow-hidden">
+          <div className="absolute top-20 left-10 w-64 h-64 bg-primary/5 rounded-full blur-3xl animate-float" />
+          <div className="absolute top-40 right-20 w-96 h-96 bg-accent/5 rounded-full blur-3xl animate-float-slow" />
+          <div className="absolute bottom-20 left-1/3 w-80 h-80 bg-primary/5 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+        </div>
+        
         <div className="max-w-4xl mx-auto text-center space-y-8">
           <div className="space-y-2">
             <p className="text-sm font-semibold text-primary uppercase tracking-wider">
