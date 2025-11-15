@@ -38,7 +38,12 @@ serve(async (req) => {
       throw new Error("Email verification required. Please verify your email before subscribing.");
     }
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    const stripeSecret = Deno.env.get("STRIPE_SECRET_KEY") || "";
+    if (!stripeSecret) {
+      throw new Error("STRIPE_SECRET_KEY is not configured");
+    }
+
+    const stripe = new Stripe(stripeSecret, {
       apiVersion: "2025-08-27.basil",
     });
 
