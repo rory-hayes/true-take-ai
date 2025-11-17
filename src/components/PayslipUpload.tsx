@@ -210,18 +210,6 @@ const PayslipUpload = ({
         });
       }
 
-      // Decrement uploads_remaining for free users
-      if (subscriptionTier === "free") {
-        const { error: updateError } = await supabase
-          .from("profiles")
-          .update({ uploads_remaining: uploadsRemaining - 1 })
-          .eq("id", user.id);
-
-        if (!updateError) {
-          setUploadsRemaining(uploadsRemaining - 1);
-        }
-      }
-
       // Navigate to confirmation page
       navigate(`/confirm/${ocrResult.data.id}`);
 

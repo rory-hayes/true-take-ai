@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle2, Pencil, Check, X } from "lucide-react";
+import { Loader2, CheckCircle2, Pencil, Check, X, AlertTriangle } from "lucide-react";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { getCurrencySymbol } from "@/lib/currencyUtils";
 
@@ -48,7 +49,9 @@ const ConfirmPayslip = () => {
 
       if (error) throw error;
       setData(payslipData);
-      setEditedAdditionalData(payslipData.additional_data || {});
+      const rawAdditional = payslipData.additional_data || {};
+      const { validation_warnings, extraction_method, ...userEditable } = rawAdditional;
+      setEditedAdditionalData(userEditable);
     } catch (error) {
       console.error('Error fetching payslip data:', error);
       toast({
@@ -70,9 +73,16 @@ const ConfirmPayslip = () => {
   };
 
   const handleSaveAdditionalData = () => {
+    const rawAdditional = data?.additional_data || {};
+    const { validation_warnings, extraction_method } = rawAdditional;
+
     setData({
       ...data!,
-      additional_data: editedAdditionalData
+      additional_data: {
+        ...(validation_warnings ? { validation_warnings } : {}),
+        ...(extraction_method ? { extraction_method } : {}),
+        ...editedAdditionalData,
+      }
     });
     setIsEditingAdditional(false);
     toast({
@@ -182,6 +192,25 @@ const ConfirmPayslip = () => {
     );
   }
 
+  const validationWarningsRaw = data.additional_data?.validation_warnings;
+  const validationWarnings: string[] = Array.isArray(validationWarningsRaw)
+    ? validationWarningsRaw
+    : validationWarningsRaw
+      ? [String(validationWarningsRaw)]
+      : [];
+
+  const netPayMismatchWarning = validationWarnings.find((w) =>
+    w.toLowerCase().includes("net pay mismatch")
+  );
+
+  const userAdditionalData = data.additional_data
+    ? Object.fromEntries(
+        Object.entries(data.additional_data).filter(
+          ([key]) => key !== "validation_warnings" && key !== "extraction_method"
+        )
+      )
+    : {};
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
@@ -272,7 +301,17 @@ const ConfirmPayslip = () => {
                 </div>
               </div>
 
-              {data.additional_data && Object.keys(data.additional_data).length > 0 && (
+              {netPayMismatchWarning && (
+                <Alert className="mt-2 border-amber-500 bg-amber-500/10">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  <AlertTitle>Net Pay Mismatch</AlertTitle>
+                  <AlertDescription>
+                    {netPayMismatchWarning}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {userAdditionalData && Object.keys(userAdditionalData).length > 0 && (
                 <div className="pt-4 border-t">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold">Additional Information</h3>
@@ -312,7 +351,7 @@ const ConfirmPayslip = () => {
                   
                   {!isEditingAdditional ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                      {Object.entries(data.additional_data).map(([key, value]) => (
+                      {Object.entries(userAdditionalData).map(([key, value]) => (
                         <div key={key} className="flex justify-between">
                           <span className="text-muted-foreground capitalize">
                             {key.replace(/_/g, ' ')}:
