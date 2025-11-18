@@ -97,7 +97,7 @@ const Auth = () => {
 
       if (error) throw error;
 
-      // Store legal agreement timestamps and IP address
+      // Store legal agreement timestamps, IP address, and create/update profile
       if (authData.user) {
         const now = new Date().toISOString();
         
@@ -113,13 +113,16 @@ const Auth = () => {
 
         await supabase
           .from("profiles")
-          .update({
+          .upsert({
+            id: authData.user.id,
+            email: authData.user.email,
+            subscription_tier: "free",
+            uploads_remaining: 3,
             terms_accepted_at: now,
             privacy_accepted_at: now,
             signup_ip_address: ipAddress,
             date_of_birth: validated.dateOfBirth,
-          })
-          .eq("id", authData.user.id);
+          }, { onConflict: "id" });
       }
 
       toast({

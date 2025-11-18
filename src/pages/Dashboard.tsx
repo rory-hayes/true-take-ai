@@ -44,7 +44,7 @@ const Dashboard = () => {
       } else {
         setUser(session.user);
         setIsEmailVerified(!!session.user.email_confirmed_at);
-        fetchPayslipData(session.user.id);
+        fetchPayslipData(session.user.id, session.user.email || "");
         
         // Check if returning from Stripe checkout
         const urlParams = new URLSearchParams(window.location.search);
@@ -63,7 +63,7 @@ const Dashboard = () => {
       } else {
         setUser(session.user);
         setIsEmailVerified(!!session.user.email_confirmed_at);
-        fetchPayslipData(session.user.id);
+        fetchPayslipData(session.user.id, session.user.email || "");
       }
     });
 
@@ -88,7 +88,7 @@ const Dashboard = () => {
         
         // Try refreshing data anyway
         if (user) {
-          await fetchPayslipData(user.id);
+          await fetchPayslipData(user.id, user.email || "");
         }
         return;
       }
@@ -115,7 +115,7 @@ const Dashboard = () => {
         setTimeout(async () => {
           const { data: retryData } = await supabase.functions.invoke('check-subscription');
           if (retryData?.subscribed && user) {
-            await fetchPayslipData(user.id);
+            await fetchPayslipData(user.id, user.email || "");
             toast({
               title: "Subscription activated!",
               description: "Your account has been upgraded successfully.",
@@ -128,14 +128,38 @@ const Dashboard = () => {
     }
   };
 
-  const fetchPayslipData = async (userId: string) => {
+  const fetchPayslipData = async (userId: string, userEmail: string) => {
     try {
-      // Fetch user profile for subscription tier, uploads remaining, and date of birth
-      const { data: profile } = await supabase
+      // Fetch or create user profile for subscription tier, uploads remaining, and date of birth
+      let { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('subscription_tier, uploads_remaining, date_of_birth')
         .eq('id', userId)
         .maybeSingle();
+
+      if (profileError) {
+        console.error('Error loading profile:', profileError);
+      }
+
+      // If profile does not exist yet (e.g. legacy users), create a default one
+      if (!profile) {
+        const { data: newProfile, error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            email: userEmail,
+            subscription_tier: 'free',
+            uploads_remaining: 3,
+          })
+          .select('subscription_tier, uploads_remaining, date_of_birth')
+          .single();
+
+        if (!insertError) {
+          profile = newProfile;
+        } else {
+          console.error('Error creating default profile:', insertError);
+        }
+      }
 
       if (profile?.subscription_tier) {
         setSubscriptionTier(profile.subscription_tier);
