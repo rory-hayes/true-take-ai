@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { EmailVerificationBanner } from "@/components/EmailVerificationBanner";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { formatCurrency } from "@/lib/currencyUtils";
 import { PlanConfirmationDialog } from "@/components/PlanConfirmationDialog";
+import { MainNav } from "@/components/MainNav";
 
 // Pricing in EUR as base (what Stripe charges)
 const BASE_PRICES = {
@@ -27,7 +28,6 @@ const STRIPE_PRICES = {
 export default function Pricing() {
   const navigate = useNavigate();
   const location = useLocation();
-  const annualCardRef = useRef<HTMLDivElement>(null);
   const { currency } = useCurrency();
   const [loading, setLoading] = useState<string | null>(null);
   const [currentTier, setCurrentTier] = useState<string>("free");
@@ -71,11 +71,7 @@ export default function Pricing() {
   }, [navigate]);
 
   useEffect(() => {
-    if (location.state?.selectedPlan === "annual" && annualCardRef.current) {
-      setTimeout(() => {
-        annualCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 100);
-    }
+    // no-op for now, kept for potential future state-based navigation
   }, [location.state]);
 
   const handleSubscribeClick = (plan: typeof plans[0]) => {
@@ -197,54 +193,30 @@ export default function Pricing() {
       disabled: currentTier === "free",
     },
     {
-      name: "Monthly",
+      name: "Premium",
       tier: "monthly",
       price: formatCurrency(BASE_PRICES.monthly, currency),
       period: "/month",
-      description: "Great for regular users",
+      description: "Full access to AI ChatKit and advanced analytics",
+      badge: `Or ${formatCurrency(BASE_PRICES.annual, currency)}/year`,
       features: [
         "Unlimited payslip uploads",
-        "Advanced AI insights",
-        "AI ChatKit functionality",
-        "Chat with your payslips",
-        "Priority support",
+        "AI Chat assistant for tax questions",
+        "Advanced analytics and projections",
+        "Income trend analysis",
+        "Priority email support",
       ],
-      cta: currentTier === "monthly" ? "Current Plan" : "Subscribe",
-      disabled: currentTier === "monthly",
+      cta: currentTier === "monthly" || currentTier === "annual" ? "Current Plan" : "Upgrade to Premium",
+      disabled: currentTier === "monthly" || currentTier === "annual",
       priceId: STRIPE_PRICES.monthly,
-    },
-    {
-      name: "Annual",
-      tier: "annual",
-      price: formatCurrency(BASE_PRICES.annual, currency),
-      period: "/year",
-      description: "Best value - Save 10%",
-      badge: `Save ${formatCurrency(BASE_PRICES.monthly * 12 - BASE_PRICES.annual, currency)}`,
-      features: [
-        "Everything in Monthly",
-        "10% discount",
-        "Annual billing",
-        "Priority support",
-        "Early access to new features",
-      ],
-      cta: currentTier === "annual" ? "Current Plan" : "Subscribe",
-      disabled: currentTier === "annual",
-      priceId: STRIPE_PRICES.annual,
       popular: true,
     },
   ];
 
   return (
     <div className="min-h-screen bg-background">
+      <MainNav userEmail={userEmail} isEmailVerified={isEmailVerified} />
       <div className="container max-w-7xl mx-auto py-8 px-4">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/dashboard")}
-          className="mb-6"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Dashboard
-        </Button>
 
         {!isEmailVerified && <EmailVerificationBanner userEmail={userEmail} />}
 
@@ -255,11 +227,10 @@ export default function Pricing() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 mb-12">
+        <div className="grid md:grid-cols-2 gap-8 mb-12">
           {plans.map((plan) => (
             <Card
               key={plan.tier}
-              ref={plan.tier === "annual" ? annualCardRef : undefined}
               className={`relative ${plan.popular ? "border-primary shadow-lg" : ""}`}
             >
               {plan.popular && (

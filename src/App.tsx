@@ -16,6 +16,8 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import PayslipDetail from "./pages/PayslipDetail";
 import VerifyEmail from "./pages/VerifyEmail";
 import NotFound from "./pages/NotFound";
+import Upload from "./pages/Upload";
+import Insights from "./pages/Insights";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +30,9 @@ const App = () => (
         <Route path="/" element={<Landing />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/upload" element={<Upload />} />
+        <Route path="/insights" element={<Insights />} />
+        <Route path="/subscription" element={<Pricing />} />
         <Route path="/confirm/:id" element={<ConfirmPayslip />} />
         <Route path="/profile" element={<UserProfile />} />
         <Route path="/pricing" element={<Pricing />} />

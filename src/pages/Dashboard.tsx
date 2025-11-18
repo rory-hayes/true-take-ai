@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -11,7 +10,7 @@ import FloatingChatButton from "@/components/FloatingChatButton";
 import { formatCurrency, getCurrencySymbol } from "@/lib/currencyUtils";
 import PayslipUpload from "@/components/PayslipUpload";
 import PayslipChart from "@/components/PayslipChart";
-import { UserMenu } from "@/components/UserMenu";
+import { MainNav } from "@/components/MainNav";
 import { EmailVerificationBanner } from "@/components/EmailVerificationBanner";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { PensionInsightsCard } from "@/components/PensionInsightsCard";
@@ -249,30 +248,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <FileText className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--accent))] bg-clip-text text-transparent">
-              Tally
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              onClick={() => setSelectedDialog('upload')}
-              disabled={!isEmailVerified || (subscriptionTier === "free" && uploadsRemaining === 0)}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Upload Payslip
-            </Button>
-            <UserMenu userEmail={user?.email || ""} isEmailVerified={isEmailVerified} />
-          </div>
-        </div>
-      </header>
-
+      <MainNav userEmail={user?.email || ""} isEmailVerified={isEmailVerified} />
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         {!isEmailVerified && <EmailVerificationBanner userEmail={user?.email || ""} />}
@@ -294,8 +270,21 @@ const Dashboard = () => {
         )}
         
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Your Dashboard</h1>
-          <p className="text-muted-foreground">Track and analyze your payslip data</p>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold mb-1">Your Dashboard</h1>
+              <p className="text-muted-foreground">Overview of your payslips and income insights</p>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => setSelectedDialog('upload')}
+              disabled={!isEmailVerified || (subscriptionTier === "free" && uploadsRemaining === 0)}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Upload Payslip
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards - Now 4 cards including Upload */}
