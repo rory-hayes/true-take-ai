@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useToast } from "@/hooks/use-toast";
 import { FileText, Upload, TrendingUp, DollarSign, AlertCircle, Plus, Euro, Banknote } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import FloatingChatButton from "@/components/FloatingChatButton";
 import { formatCurrency, getCurrencySymbol } from "@/lib/currencyUtils";
 import PayslipUpload from "@/components/PayslipUpload";
